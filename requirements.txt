@@ -1,0 +1,5 @@
+xarm
+hidapi
+flask
+flask-cors
+jsonify
