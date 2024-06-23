@@ -3,3 +3,7 @@ hidapi
 flask
 flask-cors
 jsonify
+
+ws
+wrtc
+rosnodejs
