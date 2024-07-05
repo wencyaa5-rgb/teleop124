@@ -4,6 +4,10 @@ flask
 flask-cors
 jsonify
 
-ws
 wrtc
-rosnodejs
+
+pycairo
+pygobject==3.34.0
+websockets==10.0
+PyYAML
+
