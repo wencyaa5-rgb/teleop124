@@ -1,0 +1,16 @@
+{
+    "name": "my_project",
+    "version": "1.0.0",
+    "description": "",
+    "main": "joystick_webrtc.js",
+    "scripts": {
+      "start": "node joystick_webrtc.js"
+    },
+    "dependencies": {
+      "wrtc": "^0.4.7",
+      "ws": "^7.5.6"
+    },
+    "author": "",
+    "license": "ISC"
+  }
+  
