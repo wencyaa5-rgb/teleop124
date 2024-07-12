@@ -10,10 +10,6 @@ RUN apt-get update && \
     grep -vE "^\s*#" /app/apt-requirements.txt | xargs apt-get install -y && \
     apt-get clean
 
-# Install supervisor in the build stage
-RUN apt-get install -y supervisor
-RUN mkdir -p /var/log/supervisor
-
 # Set the working directory
 WORKDIR /opt/app
 
@@ -27,14 +23,18 @@ ENV PATH="/opt/app/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+# Install supervisor in the build stage
+RUN apt-get install -y supervisor
+RUN mkdir -p /var/log/supervisor
+
 # Stage 2: Set up Node.js and copy Python dependencies
 FROM node:14
 
 # Set the working directory
 WORKDIR /opt/app
 
-# Install supervisor in the node stage
-RUN apt-get update && apt-get install -y supervisor
+# Install Python 3.8 and supervisor
+RUN apt-get update && apt-get install -y python3.8 python3.8-venv supervisor
 
 # Copy the virtual environment from the build stage
 COPY --from=build /opt/app/venv /venv
