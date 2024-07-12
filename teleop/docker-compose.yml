@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  teleop:
+    build: .
+    ports:
+      - "8765:8765"
+      - "8443:8443"
+    environment:
+      - PYTHONUNBUFFERED=1

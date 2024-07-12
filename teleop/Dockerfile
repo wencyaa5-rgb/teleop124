@@ -1,5 +1,5 @@
-# Use the official Python base image
-FROM python:3.8-slim
+# Stage 1: Build Python dependencies
+FROM python:3.8-slim as build
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -7,30 +7,54 @@ ENV PYTHONUNBUFFERED=1
 # Install necessary dependencies
 COPY apt-requirements.txt /app/apt-requirements.txt
 RUN apt-get update && \
-    xargs -a /app/apt-requirements.txt apt-get install -y && \
+    grep -vE "^\s*#" /app/apt-requirements.txt | xargs apt-get install -y && \
     apt-get clean
+RUN apt-get update && apt-get install -y supervisor
 
-# Copy the requirements.txt file into the container
-COPY requirements.txt /app/requirements.txt
+# Set the working directory
+WORKDIR /opt/app
 
-# Install Python dependencies
-RUN pip install -r /app/requirements.txt
+# Create a virtual environment
+RUN python -m venv /opt/app/venv
 
-# Install Node.js
-RUN curl -fsSL https://deb.nodesource.com/setup_17.x | bash - && \
-    apt-get install -y nodejs
+# Activate the virtual environment
+ENV PATH="/opt/app/venv/bin:$PATH"
 
-# Set working directory
-WORKDIR /app
+# Copy the requirements file and install dependencies
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# Copy project files
-COPY . .
+# Stage 2: Set up Node.js and copy Python dependencies
+FROM node:14
+
+# # Install Python 3.8
+# RUN apt-get update && \
+#     apt-get install -y python3.8 python3.8-venv && \
+#     apt-get clean
+
+# Set the working directory
+WORKDIR /opt/app
+
+# Copy the virtual environment from the build stage
+COPY --from=build /opt/app/venv /venv
+
+# Activate the virtual environment
+ENV PATH="/venv/bin:$PATH"
+
+# Set the Node.js environment
+ENV NODE_ENV=container
+
+# Copy the package.json and package-lock.json files
+COPY package*.json .
 
 # Install Node.js dependencies
 RUN npm install
 
+# Copy the rest of the application code
+COPY . .
+
 # Expose ports if needed
 EXPOSE 8765 8443
 
-# Start the services
-CMD ["sh", "-c", "node joystick_webrtc.js & python gstreamer_webrtc.py"]
+# Run supervisord to start the services
+CMD ["supervisord", "-c", "/app/supervisord.conf"]

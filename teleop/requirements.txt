@@ -1,2 +1,5 @@
+# pycairo
+# pygobject
 websockets
-PyGObject
+
+requests
