@@ -6,5 +6,7 @@ services:
     ports:
       - "8765:8765"
       - "8443:8443"
+    volumes:
+      - ./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     environment:
       - PYTHONUNBUFFERED=1
