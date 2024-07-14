@@ -1,8 +1,27 @@
-# Stage 1: Build Python dependencies
-FROM python:3.8-slim as build
+# Use the official Ubuntu base image
+# ROS2 Humble supports 22.04
+FROM ubuntu:22.04
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+
+# this is to avoid getting stuck at step such as geographic config
+# example
+#  => [ 3/15] RUN apt-get update &&     grep -vE "^\s*#" /app/apt-requirements.txt | xargs apt-get install -y &&     apt-get clean                                                                                                           647.9s
+#  => => # questions will narrow this down by presenting a list of cities, representing
+#  => => # the time zones in which they are located.
+#  => => #   1. Africa      4. Australia  7. Atlantic  10. Pacific  13. Etc
+#  => => #   2. America     5. Arctic     8. Europe    11. SystemV
+#  => => #   3. Antarctica  6. Asia       9. Indian    12. US
+#  => => # Geographic area:
+ENV DEBIAN_FRONTEND noninteractive
+
+ENV NVM_DIR /usr/local/nvm
+# without mkdir $NVM_DIR, you will see this error
+# You have $NVM_DIR set to "/usr/local/nvm", but that directory does not exist. Check your profile files and environment
+RUN mkdir $NVM_DIR
+ENV NODE_VERSION 20.15.1
+
 
 # Install necessary dependencies
 COPY apt-requirements.txt /app/apt-requirements.txt
@@ -10,55 +29,48 @@ RUN apt-get update && \
     grep -vE "^\s*#" /app/apt-requirements.txt | xargs apt-get install -y && \
     apt-get clean
 
+RUN apt-get install -y supervisor
+RUN mkdir -p /var/log/supervisor
+
+# installs nvm (Node Version Manager)
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash \
+    # need to run .sh file manually to avoid restarting terminal in docker
+    && . $NVM_DIR/nvm.sh \
+    && nvm install $NODE_VERSION \
+    && nvm alias default $NODE_VERSION \
+    && nvm use default
+
+ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
+# ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+
 # Set the working directory
 WORKDIR /opt/app
 
 # Create a virtual environment
-RUN python -m venv /opt/app/venv
+RUN python3.10 -m venv /opt/app/venv
 
 # Activate the virtual environment
 ENV PATH="/opt/app/venv/bin:$PATH"
 
 # Copy the requirements file and install dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-# Install supervisor in the build stage
-RUN apt-get install -y supervisor
-RUN mkdir -p /var/log/supervisor
-
-# Stage 2: Set up Node.js and copy Python dependencies
-FROM node:14
-
-# Set the working directory
-WORKDIR /opt/app
-
-# Install Python 3.8 and supervisor
-RUN apt-get update && apt-get install -y python3.8 python3.8-venv supervisor
-
-# Copy the virtual environment from the build stage
-COPY --from=build /opt/app/venv /venv
-
-# Activate the virtual environment
-ENV PATH="/venv/bin:$PATH"
-
-# Set the Node.js environment
-ENV NODE_ENV=container
+COPY requirements.txt /opt/app/requirements.txt
+RUN pip install -r /opt/app/requirements.txt
 
 # Copy the package.json and package-lock.json files
-COPY package*.json .
+COPY package*.json /opt/app/
 
 # Install Node.js dependencies
-RUN npm install
+RUN npm install -g node-pre-gyp \
+    && npm install
 
 # Copy the rest of the application code
-COPY . .
+COPY . /opt/app/
 
-# Copy the supervisord configuration file
-COPY ./supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# Copy the supervisor configuration file
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports if needed
 EXPOSE 8765 8443
 
 # Run supervisord to start the services
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

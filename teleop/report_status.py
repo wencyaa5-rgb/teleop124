@@ -33,10 +33,10 @@ def get_ip_address():
 
 # Function to report status to Bubble
 def report_status():
-    url = 'https://test-76672.bubbleapps.io/version-test/api/1.1/wf/robots'  # Replace with your Bubble API endpoint URL
+    url = 'https://service.intuitivemotion.ai/version-test/api/1.1/wf/robots'  # Replace with your Bubble API endpoint URL
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 9889383b5797ec21e836fadc4588d386'
+        'Authorization': 'Bearer fb4a1a4c486cec5708f906e90b7c040d'
     }
 
     mac_address = get_mac_address()
@@ -50,7 +50,7 @@ def report_status():
             'id': robot_id,
             'status': status,
             'ip': ip_address,
-            'site': '1720730713432x848325582621702300',
+            'site': '1720904844326x838139993909442300', # TODO: hardcoded to Harvard, SEC for now, need to change to automatically detect geo location
         }
 
         try:

@@ -1,5 +1,5 @@
-# pycairo
-# pygobject
+pycairo
+pygobject
 websockets
 
 requests
