@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import argparse
+import logging
 
 import gi
 from gi.repository import Gst
@@ -26,6 +27,10 @@ v4l2src device=/dev/video0 ! videoconvert ! vp8enc target-bitrate=500000 deadlin
 # v4l2src device=/dev/video0 ! video/x-raw,width=640,height=480 ! videoconvert ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302
 # '''
 
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 class WebRTCClient:
     def __init__(self, id_, server, loop):
@@ -38,13 +43,20 @@ class WebRTCClient:
         self.ice_candidate_queue = []
 
     async def connect(self):
-        sslctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
-        self.conn = await websockets.connect(self.server, ssl=sslctx)
-        print("Connected to signaling server")
+        ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        self.conn = await websockets.connect(self.server, ssl=ssl_context)
+        logging.info("Connected to signaling server")
+        # # the following fails to create connection with ssl when running in docker
+        # # ssl.SSLError: Cannot create a client socket with a PROTOCOL_TLS_SERVER context (_ssl.c:811)
+        # sslctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+        # self.conn = await websockets.connect(self.server, ssl=sslctx)
+        # logging.info("Connected to signaling server")
 
     def send_sdp_offer(self, offer):
         text = offer.sdp.as_text()
-        print('Sending offer:\n%s' % text)
+        logging.info('Sending offer:\n%s' % text)
         msg = json.dumps({'type': 'offer', 'sdp': text})
         asyncio.run_coroutine_threadsafe(self.conn.send(msg), self.loop)
 
@@ -58,7 +70,7 @@ class WebRTCClient:
         self.send_sdp_offer(offer)
 
     def on_negotiation_needed(self, element):
-        print("Negotiation needed")
+        logging.info("Negotiation needed")
         promise = Gst.Promise.new_with_change_func(self.on_offer_created, element, None)
         element.emit('create-offer', None, promise)
 
@@ -91,7 +103,7 @@ class WebRTCClient:
 
     def on_incoming_decodebin_stream(self, _, pad):
         if not pad.has_current_caps():
-            print(pad, 'has no caps, ignoring')
+            logging.info('%s has no caps, ignoring' % pad)
             return
 
         caps = pad.get_current_caps()
@@ -139,24 +151,24 @@ class WebRTCClient:
             GstWebRTC.WebRTCICEConnectionState.DISCONNECTED: "disconnected",
             GstWebRTC.WebRTCICEConnectionState.CLOSED: "closed",
         }.get(state, "unknown")
-        print(f"ICE connection state changed: {state_str}")
+        logging.info(f"ICE connection state changed: {state_str}")
 
     def start_pipeline(self):
         def on_gst_message(bus: Gst.Bus, message: Gst.Message, loop: GLib.MainLoop):
             mtype = message.type
             if mtype == Gst.MessageType.EOS:
-                print("End of stream")
+                logging.info("End of stream")
                 loop.quit()
             elif mtype == Gst.MessageType.ERROR:
                 err, debug = message.parse_error()
-                print(err, debug)
+                logging.error(err, debug)
                 loop.quit()
             elif mtype == Gst.MessageType.WARNING:
                 err, debug = message.parse_warning()
-                print(err, debug)
+                logging.debug(err, debug)
             return True
         
-        print("Starting pipeline")
+        logging.info("Starting pipeline")
         try:
             self.pipe = Gst.parse_launch(PIPELINE_DESC)
             bus = self.pipe.get_bus()
@@ -168,20 +180,20 @@ class WebRTCClient:
             self.webrtc.connect('notify::ice-connection-state', self.on_ice_connection_state_change)
             self.pipe.set_state(Gst.State.PLAYING)
             bus.connect("message", on_gst_message, self.loop)
-            print("Pipeline started successfully")
+            logging.info("Pipeline started successfully")
         except Exception as e:
-            print(f"Error starting pipeline: {e}")
+            logging.error(f"Error starting pipeline: {e}")
 
     def handle_sdp(self, message):
         if not self.webrtc:
-            print("Error: WebRTC bin not initialized.")
+            logging.error("Error: WebRTC bin not initialized.")
             return
         msg = json.loads(message)
         if 'sdp' in msg:
             sdp = msg['sdp']
-            print("Adding Remote SDP:\n%s" % sdp)
+            logging.info("Adding Remote SDP:\n%s" % sdp)
             if msg['type'] == 'answer':
-                print('Received answer:\n%s' % sdp)
+                logging.info('Received answer:\n%s' % sdp)
                 res, sdpmsg = GstSdp.SDPMessage.new()
                 GstSdp.sdp_message_parse_buffer(bytes(sdp.encode()), sdpmsg)
                 answer = GstWebRTC.WebRTCSessionDescription.new(GstWebRTC.WebRTCSDPType.ANSWER, sdpmsg)
@@ -195,7 +207,7 @@ class WebRTCClient:
             candidate_str = ice['candidate']
             sdpmlineindex = ice['sdpMLineIndex']
             if self.remote_description_set:
-                print("Adding ice Candidate:\n%s" % ice)
+                logging.info("Adding ice Candidate:\n%s" % ice)
                 self.webrtc.emit('add-ice-candidate', sdpmlineindex, candidate_str)
             else:
                 self.ice_candidate_queue.append(ice)
@@ -204,12 +216,12 @@ class WebRTCClient:
         for ice in self.ice_candidate_queue:
             candidate = ice['candidate']
             sdpmlineindex = ice['sdpMLineIndex']
-            print("Processing queued candidate:\n%s" % candidate)
+            logging.info("Processing queued candidate:\n%s" % candidate)
             self.webrtc.emit('add-ice-candidate', sdpmlineindex, candidate)
         self.ice_candidate_queue = []
 
     def close_pipeline(self):
-        print("Closing pipeline")
+        logging.info("Closing pipeline")
         self.pipe.set_state(Gst.State.NULL)
         self.pipe = None
         self.webrtc = None
@@ -218,7 +230,7 @@ class WebRTCClient:
         assert self.conn
         self.start_pipeline()
         async for message in self.conn:
-            print("Received message:", message)
+            logging.debug('Received message:\n%s' % message)
             self.handle_sdp(message)
         self.close_pipeline()
         return 0
@@ -233,7 +245,7 @@ def check_plugins():
               "rtpmanager", "videotestsrc", "audiotestsrc"]
     missing = list(filter(lambda p: Gst.Registry.get().find_plugin(p) is None, needed))
     if len(missing):
-        print('Missing gstreamer plugins:', missing)
+        logging.warn('Missing gstreamer plugins: %s' % missing)
         return False
     return True
 

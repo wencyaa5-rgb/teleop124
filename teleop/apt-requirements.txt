@@ -4,25 +4,43 @@ python3.10
 python3.10-venv
 python3-pip
 curl
+
+# required for gstreamer
+# python3-gi
+# gobject-introspection
+
+# required for gstreamer
+# https://gist.github.com/jackersson/59ca11f9b1d3413e16084b1bab05f49d
+git
+autoconf
+automake
+libtool
+gstreamer1.0
 gstreamer1.0-tools
+gstreamer1.0-x
+gstreamer1.0-alsa
+gstreamer1.0-gl
+gstreamer1.0-gtk3
+gstreamer1.0-qt5
+gstreamer1.0-pulseaudio
+libgstreamer1.0-dev
+libgstreamer-plugins-base1.0-dev
+libgstreamer-plugins-bad1.0-dev
 gstreamer1.0-plugins-base
 gstreamer1.0-plugins-good
 gstreamer1.0-plugins-bad
 gstreamer1.0-plugins-ugly
 gstreamer1.0-libav
-gstreamer1.0-alsa
-gstreamer1.0-pulseaudio
-
-# required for gstreamer
-python3-gi
-python3-gi-cairo
-# gir1.2-gstreamer-1.0
-# gir1.2-gst-plugins-base-1.0
-gobject-introspection
 libgirepository1.0-dev
-
-
+gir1.2-gst-rtsp-server-1.0
 # Required for pycairo
 # https://stackoverflow.com/questions/70508775/error-could-not-build-wheels-for-pycairo-which-is-required-to-install-pyprojec
 libcairo2-dev
+gir1.2-gstreamer-1.0
+python3-gi
+python-gi-dev
+#p ython3-gi-cairo
+
+
+
 pkg-config

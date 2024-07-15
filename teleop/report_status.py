@@ -4,6 +4,11 @@ import json
 import time
 import uuid
 import hashlib
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Function to get the MAC address of the robot
 def get_mac_address():
@@ -41,7 +46,7 @@ def report_status():
 
     mac_address = get_mac_address()
     robot_id = generate_robot_id(mac_address)
-    print(f"Robot ID: {robot_id}")
+    logging.info(f"Robot ID: {robot_id}")
 
     while True:
         ip_address = get_ip_address()
@@ -56,11 +61,11 @@ def report_status():
         try:
             response = requests.post(url, headers=headers, data=json.dumps(data))
             if response.status_code == 200:
-                print("Status reported successfully")
+                logging.info("Status reported successfully")
             else:
-                print(f"Failed to report status: {response.status_code} {response.text}")
+                logging.info(f"Failed to report status: {response.status_code} {response.text}")
         except Exception as e:
-            print(f"Error reporting status: {e}")
+            logging.info(f"Error reporting status: {e}")
 
         time.sleep(60)  # Report every 60 seconds
 
