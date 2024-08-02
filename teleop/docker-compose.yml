@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.3'
 
 services:
   teleop:
@@ -11,8 +11,8 @@ services:
       - ./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     devices:
       # this is the device referenced by gstreamer to access the camera. 
-      # Change /dev/video0 to be any usb port used by the camera for the arm
-      - "/dev/video0:/dev/video0" 
+      # Change /dev/video8 to be any usb port used by the camera for the arm
+      - "/dev/video8:/dev/video8" 
     environment:
       - PYTHONUNBUFFERED=1
     privileged: true
