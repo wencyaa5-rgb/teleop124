@@ -1,6 +1,7 @@
 # Use the official Ubuntu base image
 # ROS2 Humble supports 22.04
-FROM ubuntu:22.04
+# FROM ubuntu:22.04
+FROM osrf/ros:humble-desktop
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -100,8 +101,10 @@ RUN pip install -r /opt/app/requirements.txt
 # Copy the package.json and package-lock.json files
 COPY package*.json /opt/app/
 
-# Install Node.js dependencies
-RUN npm install -g node-pre-gyp \
+# Run the entry point script to set up the environment and install Node.js dependencies
+# and then Install Node.js dependencies because rclnodejs depends on having the ros
+# workspace sourced
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && echo here && echo $AMENT_PREFIX_PATH && echo here && npm install -g node-pre-gyp \
     && npm install
 
 # Copy the rest of the application code
@@ -111,7 +114,7 @@ COPY . /opt/app/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports if needed
-EXPOSE 8765 8443
+EXPOSE 8765 8443 9090
 
 # Run supervisord to start the services
 CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
