@@ -7,12 +7,19 @@ services:
     ports:
       - "8765:8765"
       - "8443:8443"
+    networks:
+      - ros2_network
     volumes:
       - ./supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     devices:
       # this is the device referenced by gstreamer to access the camera. 
-      # Change /dev/video8 to be any usb port used by the camera for the arm
+      # Change /dev/video0 to be any usb port used by the camera for the arm
       - "/dev/video8:/dev/video8" 
     environment:
       - PYTHONUNBUFFERED=1
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
     privileged: true
+
+networks:
+  ros2_network:
+    driver: bridge

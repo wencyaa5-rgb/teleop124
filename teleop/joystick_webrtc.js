@@ -100,7 +100,7 @@ function initializePeerConnection() {
   };
 
   dataChannel.onmessage = (event) => {
-    console.log('Received message:', event.data);
+    // console.log('Received message:', event.data);
     const jointCommand = JSON.parse(event.data);
     // send command through local websocket to control gripper
     // pythonWebSocket.send(JSON.stringify(jointCommand));

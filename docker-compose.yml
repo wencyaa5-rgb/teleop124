@@ -1,0 +1,59 @@
+version: '3.3'
+
+services:
+  ros2:
+    build:
+      context: ./ros2_ws
+      dockerfile: Dockerfile
+      args:
+        USERNAME: cecilia
+    container_name: ros2_service
+    environment:
+      - ROS_DOMAIN_ID=42
+      - DISPLAY=unix:0
+    networks:
+      - ros2_network
+    volumes:
+      - ./ros2_ws:/home/cecilia/ws
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/dri:/dev/dri:rw
+    tty: true
+    command: /bin/bash
+    labels:
+      - "com.docker.compose.devcontainer:1"
+    user: cecilia
+    stdin_open: true
+    privileged: true
+    ports:
+      - "11311:11311"
+
+  teleop:
+    build:
+      context: ./teleop
+      dockerfile: Dockerfile
+    container_name: teleop_service
+    environment:
+      - ROS_DOMAIN_ID=42
+      - PYTHONUNBUFFERED=1
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - DISPLAY=unix:0
+    tty: true
+    command: /bin/bash
+    ports:
+      - "8765:8765"
+      - "8443:8443"
+    volumes:
+      - ./teleop:/home/cecilia/teleop
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/dri:/dev/dri:rw
+    devices:
+      - "/dev/video8:/dev/video8"
+    privileged: true
+    networks:
+      - ros2_network
+    depends_on:
+      - ros2
+
+networks:
+  ros2_network:
+    driver: bridge
