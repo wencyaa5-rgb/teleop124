@@ -33,26 +33,82 @@ let clock;
     
 // Handle incoming messages from the signaling server
 
-// Function to publish joystick messages
+// // Function to publish joystick messages
+// function publishJoyMessage(jointCommand) {
+//   const axes = jointCommand.axes || [0.0, 1.0, 0.0, -1.0];
+//   const buttons = jointCommand.buttons || [0, 1, 0, 1];
+
+//   const allAxesBelowThreshold = axes.every(value => Math.abs(value) < JOYSTICK_SENSITIVITY_THRESHOLD);
+//   const allButtonsZero = buttons.every(value => value === 0);
+
+//   if (allAxesBelowThreshold && allButtonsZero) {
+//     // console.log('Axes values are below threshold and buttons are all zero. Not publishing.');
+//     return;
+//   }
+
+//   const msg = new JoyMessage();
+//   msg.header.stamp = clock.now();
+//   msg.axes = axes;
+//   msg.buttons = buttons;
+//   publisher.publish(msg);
+//   // console.log('Published a joy message');
+// }
+
+const XBOX360_WIRELESS_CONTROLLER_AXIS = {
+  LEFT_STICK_LR: 0,
+  LEFT_STICK_FB: 1,
+  RIGHT_STICK_LR: 2,
+  RIGHT_STICK_FB: 3,
+  LEFT_TRIGGER: 6,
+  RIGHT_TRIGGER: 7,
+  CROSS_KEY_L: 14,
+  CROSS_KEY_R: 15,
+  CROSS_KEY_F: 12,
+  CROSS_KEY_B: 13
+};
+const { LEFT_TRIGGER, RIGHT_TRIGGER, CROSS_KEY_L, CROSS_KEY_R, CROSS_KEY_F, CROSS_KEY_B } = XBOX360_WIRELESS_CONTROLLER_AXIS;
+
+const XBOX360_CONTROLLER_BUTTON = {
+  XBOX360_BTN_A: 0,
+  XBOX360_BTN_B: 1,
+  XBOX360_BTN_X: 2,
+  XBOX360_BTN_Y: 3,
+  XBOX360_BTN_LB: 4,
+  XBOX360_BTN_RB: 5,
+  XBOX360_BTN_BACK: 8,
+  XBOX360_BTN_START: 9,
+  XBOX360_BTN_POWER: 16,
+  XBOX360_BTN_STICK_LEFT: 10,
+  XBOX360_BTN_STICK_RIGHT: 11,
+};
+const buttonIndices = Object.values(XBOX360_CONTROLLER_BUTTON);
+// by default the xarm assumes there are 8 axes, and 11 buttons.
+const defaultAxes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+// Function to normalize joystick input to 8 axes and 11 buttons and publish joystick command to ros2 /joy
 function publishJoyMessage(jointCommand) {
-  const axes = jointCommand.axes || [0.0, 1.0, 0.0, -1.0];
-  const buttons = jointCommand.buttons || [0, 1, 0, 1];
+  const msg = new JoyMessage();
+  msg.header.stamp = clock.now(); 
 
-  const allAxesBelowThreshold = axes.every(value => Math.abs(value) < JOYSTICK_SENSITIVITY_THRESHOLD);
-  const allButtonsZero = buttons.every(value => value === 0);
+  msg.axes = jointCommand.axes ? jointCommand.axes.concat(defaultAxes).slice(0, 8) : defaultAxes;
+  // Map buttons to axes values according to the axis mapping
+  msg.axes[4] = jointCommand.buttons[LEFT_TRIGGER];
+  msg.axes[5] = jointCommand.buttons[RIGHT_TRIGGER];
+  msg.axes[6] = jointCommand.buttons[CROSS_KEY_L] - jointCommand.buttons[CROSS_KEY_R];
+  msg.axes[7] = jointCommand.buttons[CROSS_KEY_F] - jointCommand.buttons[CROSS_KEY_B];
 
-  if (allAxesBelowThreshold && allButtonsZero) {
-    // console.log('Axes values are below threshold and buttons are all zero. Not publishing.');
+  msg.buttons = buttonIndices.map(i => jointCommand.buttons[i] !== undefined ? jointCommand.buttons[i] : 0);
+
+  // Check if all axes values are less than the threshold in absolute value and all buttons are zero
+  if (msg.axes.every(axis => Math.abs(axis) < JOYSTICK_SENSITIVITY_THRESHOLD) && msg.buttons.every(button => button === 0)) {
+    console.log('Joystick input is in neutral position, not publishing.');
     return;
   }
 
-  const msg = new JoyMessage();
-  msg.header.stamp = clock.now();
-  msg.axes = axes;
-  msg.buttons = buttons;
   publisher.publish(msg);
-  // console.log('Published a joy message');
+  console.log('Published a joy message');
 }
+
 
 signalingSocket.on('open', async () => {
   console.log('Connected to the signaling server');

@@ -14,7 +14,7 @@ services:
     devices:
       # this is the device referenced by gstreamer to access the camera. 
       # Change /dev/video0 to be any usb port used by the camera for the arm
-      - "/dev/video8:/dev/video8" 
+      - "/dev/video4:/dev/video4" 
     environment:
       - PYTHONUNBUFFERED=1
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp

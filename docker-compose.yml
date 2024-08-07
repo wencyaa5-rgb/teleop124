@@ -15,8 +15,8 @@ services:
       - ros2_network
     volumes:
       - ./ros2_ws:/home/cecilia/ws
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /dev/dri:/dev/dri:rw
+      # - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # - /dev/dri:/dev/dri:rw
     tty: true
     command: /bin/bash
     labels:
@@ -24,8 +24,8 @@ services:
     user: cecilia
     stdin_open: true
     privileged: true
-    ports:
-      - "11311:11311"
+    # ports:
+    #   - "11311:11311"
 
   teleop:
     build:
@@ -44,10 +44,10 @@ services:
       - "8443:8443"
     volumes:
       - ./teleop:/home/cecilia/teleop
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /dev/dri:/dev/dri:rw
+      # - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # - /dev/dri:/dev/dri:rw
     devices:
-      - "/dev/video8:/dev/video8"
+      - "/dev/video4:/dev/video4"
     privileged: true
     networks:
       - ros2_network
