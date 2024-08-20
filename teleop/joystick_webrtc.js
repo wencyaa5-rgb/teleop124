@@ -92,6 +92,7 @@ function publishJoyMessage(jointCommand) {
 
   msg.axes = jointCommand.axes ? jointCommand.axes.concat(defaultAxes).slice(0, 8) : defaultAxes;
   // Map buttons to axes values according to the axis mapping
+  msg.axes[2] = msg.axes[4];
   msg.axes[4] = jointCommand.buttons[LEFT_TRIGGER];
   msg.axes[5] = jointCommand.buttons[RIGHT_TRIGGER];
   msg.axes[6] = jointCommand.buttons[CROSS_KEY_L] - jointCommand.buttons[CROSS_KEY_R];
