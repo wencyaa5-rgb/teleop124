@@ -1,47 +1,18 @@
 import requests
-import socket
 import json
 import time
-import uuid
-import hashlib
 import logging
+from util import get_mac_address, generate_robot_id, get_ip_address, BUBBLE_API_POST_STATUS_URL
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Function to get the MAC address of the robot
-def get_mac_address():
-    try:
-        mac = open('/sys/class/net/eth0/address').readline()
-    except:
-        mac = open('/sys/class/net/wlan0/address').readline()
-    return mac.strip()
-
-# Function to convert MAC address to UUID
-def generate_robot_id(mac_address):
-    namespace = uuid.UUID('12345678-1234-5678-1234-567812345678')  # Example namespace UUID
-    return str(uuid.uuid5(namespace, mac_address))
-
-# Function to get the IP address of the robot
-def get_ip_address():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # doesn't even have to be reachable
-        s.connect(('10.254.254.254', 1))
-        ip_address = s.getsockname()[0]
-    except Exception:
-        ip_address = '127.0.0.1'
-    finally:
-        s.close()
-    return ip_address
-
 # Function to report status to Bubble
 def report_status():
-    url = 'https://service.intuitivemotion.ai/version-test/api/1.1/wf/robots'  # Replace with your Bubble API endpoint URL
     headers = {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer fb4a1a4c486cec5708f906e90b7c040d'
+        'Authorization': 'Bearer fb4a1a4c486cec5708f906e90b7c040d'  # Replace with your API token
     }
 
     mac_address = get_mac_address()
@@ -55,11 +26,11 @@ def report_status():
             'id': robot_id,
             'status': status,
             'ip': ip_address,
-            'site': '1720904844326x838139993909442300', # TODO: hardcoded to Harvard, SEC for now, need to change to automatically detect geo location
+            'site': '1720904844326x838139993909442300',  # TODO: hardcoded to Harvard, SEC for now, need to change to automatically detect geo location
         }
 
         try:
-            response = requests.post(url, headers=headers, data=json.dumps(data))
+            response = requests.post(BUBBLE_API_POST_STATUS_URL, headers=headers, data=json.dumps(data))
             if response.status_code == 200:
                 logging.info("Status reported successfully")
             else:

@@ -1,12 +1,11 @@
-import random
+import sys
 import ssl
 import websockets
 import asyncio
-import os
-import sys
 import json
 import argparse
 import logging
+from util import get_mac_address, generate_robot_id, PIPELINE_DESC
 
 import gi
 from gi.repository import Gst
@@ -19,18 +18,9 @@ from gi.repository import GLib
 
 SIGNALING_SERVER_URL = 'wss://application.intuitivemotion.ai:8443'
 
-PIPELINE_DESC = '''
-v4l2src device=/dev/video4 ! videoconvert ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 latency=100 turn-server=turn://your.turn.server:3478?transport=udp
-'''
-# can potentially reduce resolution if needed even lower latency streaming
-# PIPELINE_DESC = '''
-# v4l2src device=/dev/video4 ! video/x-raw,width=640,height=480 ! videoconvert ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302
-# '''
-
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 class WebRTCClient:
     def __init__(self, id_, server, loop):
@@ -41,18 +31,20 @@ class WebRTCClient:
         self.server = server
         self.loop = loop
         self.ice_candidate_queue = []
+        self.robot_id = generate_robot_id(get_mac_address())  # Get robot_id using MAC address
+        self.bearer_token = 'fb4a1a4c486cec5708f906e90b7c040d'  # Replace with your actual token
 
     async def connect(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
-        self.conn = await websockets.connect(self.server, ssl=ssl_context)
-        logging.info("Connected to signaling server")
-        # # the following fails to create connection with ssl when running in docker
-        # # ssl.SSLError: Cannot create a client socket with a PROTOCOL_TLS_SERVER context (_ssl.c:811)
-        # sslctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
-        # self.conn = await websockets.connect(self.server, ssl=sslctx)
-        # logging.info("Connected to signaling server")
+        try:
+            self.conn = await websockets.connect(self.server, ssl=ssl_context)
+            logging.info("Connected to signaling server")
+        except Exception as e:
+            logging.error(f"Failed to connect to signaling server: {e}")
+            return False
+        return True
 
     def send_sdp_offer(self, offer):
         text = offer.sdp.as_text()
@@ -75,30 +67,7 @@ class WebRTCClient:
         element.emit('create-offer', None, promise)
 
     def send_ice_candidate_message(self, _, mlineindex, candidate):
-        candidate_parts = candidate.split()
-        
-        ice_candidate = {
-            'candidate': candidate,
-            'sdpMid': str(mlineindex),
-            'sdpMLineIndex': mlineindex,
-            'foundation': candidate_parts[0],
-            'component': candidate_parts[1],
-            'priority': int(candidate_parts[3]),
-            'address': candidate_parts[4],
-            'protocol': candidate_parts[2].lower(),
-            'port': int(candidate_parts[5]),
-            'type': candidate_parts[7],
-            'tcpType': candidate_parts[8] if len(candidate_parts) > 8 and candidate_parts[2].lower() == 'tcp' else None,
-            'relatedAddress': candidate_parts[9] if 'raddr' in candidate_parts else None,
-            'relatedPort': int(candidate_parts[11]) if 'rport' in candidate_parts else None,
-            'usernameFragment': candidate_parts[-1] if 'ufrag' in candidate_parts else None  # assuming 'ufrag' is at the end
-        }
-
-        # Remove keys with None values
-        ice_candidate = {k: v for k, v in ice_candidate.items() if v is not None}
-
         icemsg = json.dumps({'type': 'ice-candidate', 'candidate': {'candidate': candidate, 'sdpMLineIndex': mlineindex}})
-        # icemsg = json.dumps({'type': 'ice-candid'ice': {'candidate': candidate, 'sdpMLineIndex': mlineindex}})
         asyncio.run_coroutine_threadsafe(self.conn.send(icemsg), self.loop)
 
     def on_incoming_decodebin_stream(self, _, pad):
@@ -150,8 +119,14 @@ class WebRTCClient:
             GstWebRTC.WebRTCICEConnectionState.FAILED: "failed",
             GstWebRTC.WebRTCICEConnectionState.DISCONNECTED: "disconnected",
             GstWebRTC.WebRTCICEConnectionState.CLOSED: "closed",
-        }.get(state, "unknown")
+        }.get(self.webrtc.get_property(state.name), "unknown")
         logging.info(f"ICE connection state changed: {state_str}")
+        # adds auto reconnect functionality
+        if state in [GstWebRTC.WebRTCICEConnectionState.FAILED, GstWebRTC.WebRTCICEConnectionState.DISCONNECTED, GstWebRTC.WebRTCICEConnectionState.CLOSED]:
+            logging.info("ICE connection failed/disconnected/closed. Attempting to reconnect.")
+            # TODO: fix this - it tries to reconnect when the monitor_timestamp_and_restart script kills the
+            # process and restart it, which will mess up the webrtc p2p connection
+            # asyncio.run_coroutine_threadsafe(self.reconnect(), self.loop)
 
     def start_pipeline(self):
         def on_gst_message(bus: Gst.Bus, message: Gst.Message, loop: GLib.MainLoop):
@@ -221,10 +196,26 @@ class WebRTCClient:
         self.ice_candidate_queue = []
 
     def close_pipeline(self):
-        logging.info("Closing pipeline")
-        self.pipe.set_state(Gst.State.NULL)
-        self.pipe = None
-        self.webrtc = None
+        if self.pipe:
+            logging.info("Closing pipeline")
+            self.pipe.set_state(Gst.State.NULL)
+            self.pipe = None
+            self.webrtc = None
+        else:
+            logging.info("Pipeline is already closed or was never started")
+
+    async def reconnect(self):
+        """Attempt to reconnect the WebRTC pipeline."""
+        self.close_pipeline()  # Close the existing pipeline
+        while True:
+            logging.info("Attempting to reconnect...")
+            connected = await self.connect()
+            if connected:
+                logging.info("Reconnection successful")
+                await self.main_loop()
+                break
+            logging.info("Reconnection failed, retrying in 5 seconds...")
+            await asyncio.sleep(5)
 
     async def main_loop(self):
         assert self.conn
@@ -234,11 +225,6 @@ class WebRTCClient:
             self.handle_sdp(message)
         self.close_pipeline()
         return 0
-
-    async def stop(self):
-        if self.conn:
-            await self.conn.close()
-        self.conn = None
 
 def check_plugins():
     needed = ["opus", "vpx", "nice", "webrtc", "dtls", "srtp", "rtp",
@@ -256,10 +242,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--server', help='Signalling server to connect to', default=SIGNALING_SERVER_URL)
     args = parser.parse_args()
-    # our_id = random.randrange(10, 10000)
     loop = asyncio.get_event_loop()
-    # c = WebRTCClient(our_id, args.server, loop)
     c = WebRTCClient(200, args.server, loop)
-    loop.run_until_complete(c.connect())
-    res = loop.run_until_complete(c.main_loop())
-    sys.exit(res)
+    loop.run_until_complete(c.reconnect())
+    sys.exit(0)
