@@ -1,3 +1,4 @@
+import os
 import socket
 import uuid
 import logging
@@ -15,9 +16,16 @@ BUBBLE_API_GET_TIMESTAMP_URL = 'https://service.intuitivemotion.ai/api/1.1/wf/la
 BUBBLE_API_POST_STATUS_URL = 'https://service.intuitivemotion.ai/api/1.1/wf/robots'
 
 # GStreamer pipeline description
+# PIPELINE_DESC = '''
+# v4l2src device=/dev/video4 ! videoconvert ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 latency=100 turn-server=turn://your.turn.server:3478?transport=udp
+# '''
+
 PIPELINE_DESC = '''
-v4l2src device=/dev/video4 ! videoconvert ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 latency=100 turn-server=turn://your.turn.server:3478?transport=udp
+webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 turn-server=turn://your.turn.server:3478?transport=udp latency=100 
+v4l2src device=/dev/video4 ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv.
+v4l2src device=/dev/video14 ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv.
 '''
+
 
 def get_mac_address():
     try:
@@ -28,7 +36,13 @@ def get_mac_address():
 
 def generate_robot_id(mac_address):
     namespace = uuid.UUID('12345678-1234-5678-1234-567812345678')  # Example namespace UUID
-    return str(uuid.uuid5(namespace, mac_address))
+    robot_id = str(uuid.uuid5(namespace, mac_address))
+    # Write the robot_id to a file in the current directory
+    with open(os.path.join(os.path.dirname(__file__), 'robot_id.txt'), 'w') as file:
+        file.write(robot_id)
+
+    print(f"Generated robot_id: {robot_id}")
+    return robot_id
 
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

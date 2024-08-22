@@ -41,6 +41,13 @@ class WebRTCClient:
         try:
             self.conn = await websockets.connect(self.server, ssl=ssl_context)
             logging.info("Connected to signaling server")
+            # Send the join-room message with the robot_id
+            await self.conn.send(json.dumps({
+                'type': 'join-room',
+                'roomId': self.robot_id,
+                'role': 'workstation'
+            }))
+            logging.info(f"Sent join-room message with roomId: {self.robot_id}")
         except Exception as e:
             logging.error(f"Failed to connect to signaling server: {e}")
             return False
@@ -124,9 +131,7 @@ class WebRTCClient:
         # adds auto reconnect functionality
         if state in [GstWebRTC.WebRTCICEConnectionState.FAILED, GstWebRTC.WebRTCICEConnectionState.DISCONNECTED, GstWebRTC.WebRTCICEConnectionState.CLOSED]:
             logging.info("ICE connection failed/disconnected/closed. Attempting to reconnect.")
-            # TODO: fix this - it tries to reconnect when the monitor_timestamp_and_restart script kills the
-            # process and restart it, which will mess up the webrtc p2p connection
-            # asyncio.run_coroutine_threadsafe(self.reconnect(), self.loop)
+            asyncio.run_coroutine_threadsafe(self.reconnect(), self.loop)
 
     def start_pipeline(self):
         def on_gst_message(bus: Gst.Bus, message: Gst.Message, loop: GLib.MainLoop):
