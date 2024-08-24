@@ -14,11 +14,11 @@ services:
       - ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
       - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/ws/fastdds.xml
     networks:
-      - ros2_network
+      ros2_network:
+        aliases:
+          - ros2_service
     volumes:
       - ./ros2_ws:/home/cecilia/ws
-      # - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      # - /dev/dri:/dev/dri:rw
     tty: true
     command: /bin/bash
     labels:
@@ -26,8 +26,6 @@ services:
     user: cecilia
     stdin_open: true
     privileged: true
-    # ports:
-    #   - "11311:11311"
 
   teleop:
     build:
@@ -38,14 +36,15 @@ services:
       - "8765:8765"
       - "8443:8443"
     networks:
-      - ros2_network
+      ros2_network:
+        aliases:
+          - teleop_service
     volumes:
       - ./teleop/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     devices:
-      # this is the device referenced by gstreamer to access the camera. 
-      # Change /dev/video0 to be any usb port used by the camera for the arm
       - "/dev/video4:/dev/video4" 
     environment:
+      - ROS_DOMAIN_ID=42
       - PYTHONUNBUFFERED=1
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
     privileged: true

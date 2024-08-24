@@ -35,13 +35,23 @@ def get_mac_address():
     return mac.strip()
 
 def generate_robot_id(mac_address):
-    namespace = uuid.UUID('12345678-1234-5678-1234-567812345678')  # Example namespace UUID
+    file_path = os.path.join(os.path.dirname(__file__), 'robot_id.txt')
+    
+    # Check if the robot_id file exists
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as file:
+            robot_id = file.read().strip()
+        print(f"Using existing robot_id: {robot_id}")
+        return robot_id
+
+    # Generate new robot_id if the file does not exist
+    namespace = uuid.UUID('12345678-1234-5678-1234-567812345678')
     robot_id = str(uuid.uuid5(namespace, mac_address))
-    # Write the robot_id to a file in the current directory
-    with open(os.path.join(os.path.dirname(__file__), 'robot_id.txt'), 'w') as file:
+    
+    with open(file_path, 'w') as file:
         file.write(robot_id)
 
-    print(f"Generated robot_id: {robot_id}")
+    print(f"Generated new robot_id: {robot_id}")
     return robot_id
 
 def get_ip_address():
