@@ -11,6 +11,8 @@ services:
     environment:
       - ROS_DOMAIN_ID=42
       - DISPLAY=unix:0
+      - ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+      - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/ws/fastdds.xml
     networks:
       - ros2_network
     volumes:

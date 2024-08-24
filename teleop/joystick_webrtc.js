@@ -7,6 +7,38 @@ const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
 const fs = require('fs');
 const path = require('path');
 
+
+const XBOX360_WIRELESS_CONTROLLER_AXIS = {
+  LEFT_STICK_LR: 0,
+  LEFT_STICK_FB: 1,
+  RIGHT_STICK_LR: 2,
+  RIGHT_STICK_FB: 3,
+  LEFT_TRIGGER: 6,
+  RIGHT_TRIGGER: 7,
+  CROSS_KEY_L: 14,
+  CROSS_KEY_R: 15,
+  CROSS_KEY_F: 12,
+  CROSS_KEY_B: 13
+};
+const { LEFT_TRIGGER, RIGHT_TRIGGER, CROSS_KEY_L, CROSS_KEY_R, CROSS_KEY_F, CROSS_KEY_B } = XBOX360_WIRELESS_CONTROLLER_AXIS;
+
+const XBOX360_CONTROLLER_BUTTON = {
+  XBOX360_BTN_A: 0,
+  XBOX360_BTN_B: 1,
+  XBOX360_BTN_X: 2,
+  XBOX360_BTN_Y: 3,
+  XBOX360_BTN_LB: 4,
+  XBOX360_BTN_RB: 5,
+  XBOX360_BTN_BACK: 8,
+  XBOX360_BTN_START: 9,
+  XBOX360_BTN_POWER: 16,
+  XBOX360_BTN_STICK_LEFT: 10,
+  XBOX360_BTN_STICK_RIGHT: 11,
+};
+const buttonIndices = Object.values(XBOX360_CONTROLLER_BUTTON);
+// by default the xarm assumes there are 8 axes, and 11 buttons.
+const defaultAxes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
