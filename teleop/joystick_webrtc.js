@@ -222,7 +222,6 @@ async function main() {
 
   // Function to normalize joystick input to 8 axes and 11 buttons and publish joystick command to ROS2 /joy
   function publishJoyMessage(jointCommand) {
-    console.log(jointCommand);
     const msg = new JoyMessage();
     msg.header.stamp = clock.now(); 
 
@@ -236,7 +235,7 @@ async function main() {
     msg.buttons = buttonIndices.map(i => jointCommand.buttons[i] !== undefined ? jointCommand.buttons[i] : 0);
 
     if (msg.axes.every(axis => Math.abs(axis) < JOYSTICK_SENSITIVITY_THRESHOLD) && msg.buttons.every(button => button === 0)) {
-      console.log('Joystick input is in neutral position, not publishing.');
+      // console.log('Joystick input is in neutral position, not publishing.');
       return;
     }
 
