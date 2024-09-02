@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 
 const WebSocket = require('ws');
 const wrtc = require('wrtc');
@@ -7,6 +6,8 @@ const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
 const fs = require('fs');
 const path = require('path');
 
+// Define the new message type for sending (x, y) coordinates
+const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
 
 const XBOX360_WIRELESS_CONTROLLER_AXIS = {
   LEFT_STICK_LR: 0,
@@ -36,14 +37,12 @@ const XBOX360_CONTROLLER_BUTTON = {
   XBOX360_BTN_STICK_RIGHT: 11,
 };
 const buttonIndices = Object.values(XBOX360_CONTROLLER_BUTTON);
-// by default the xarm assumes there are 8 axes, and 11 buttons.
 const defaultAxes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Function to read the robot_id from a file in the current directory with infinite retry logic
 async function getRobotId(delay = 1000) {
   const filePath = path.join(__dirname, 'robot_id.txt');
 
@@ -60,7 +59,7 @@ async function getRobotId(delay = 1000) {
 }
 
 async function main() {
-  const robotId = await getRobotId(); // Get robot_id (used as roomId)
+  const robotId = await getRobotId();
   console.log(`Robot ID: ${robotId}`);
 
   const signalingServerUrl = 'wss://application.intuitivemotion.ai:8443';
@@ -71,13 +70,12 @@ async function main() {
   let dataChannel;
   let remoteDescriptionSet = false;
   let pendingCandidates = [];
-  let publisher;
+  let joyPublisher, pointPublisher;
   let clock;
 
   signalingSocket.on('open', async () => {
     console.log('Connected to the signaling server');
     
-    // Send the join-room message with the robot_id as roomId
     signalingSocket.send(JSON.stringify({
       type: 'join-room',
       roomId: robotId,
@@ -127,8 +125,12 @@ async function main() {
     };
 
     dataChannel.onmessage = (event) => {
-      const jointCommand = JSON.parse(event.data);
-      publishJoyMessage(jointCommand);
+      const data = JSON.parse(event.data);
+      if (data.type === 'click-coordinates') {
+        publishPointMessage(data.data);
+      } else {
+        publishJoyMessage(data);
+      }
     };
 
     peerConnection.onicecandidate = (event) => {
@@ -213,7 +215,8 @@ async function main() {
     const node = new rclnodejs.Node('joy_publisher');
     clock = node.getClock();
 
-    publisher = node.createPublisher('sensor_msgs/msg/Joy', 'joy');
+    joyPublisher = node.createPublisher('sensor_msgs/msg/Joy', 'joy');
+    pointPublisher = node.createPublisher('geometry_msgs/msg/PointStamped', '/user_send_goal');
 
     rclnodejs.spin(node);
   }).catch((err) => {
@@ -226,7 +229,8 @@ async function main() {
     msg.header.stamp = clock.now(); 
 
     msg.axes = jointCommand.axes ? jointCommand.axes.concat(defaultAxes).slice(0, 8) : defaultAxes;
-    // msg.axes[3] = msg.axes[4];
+    msg.axes[0] = -msg.axes[0];
+    msg.axes[1] = -msg.axes[1];
     msg.axes[4] = jointCommand.buttons[LEFT_TRIGGER];
     msg.axes[5] = jointCommand.buttons[RIGHT_TRIGGER];
     msg.axes[6] = jointCommand.buttons[CROSS_KEY_L] - jointCommand.buttons[CROSS_KEY_R];
@@ -235,12 +239,24 @@ async function main() {
     msg.buttons = buttonIndices.map(i => jointCommand.buttons[i] !== undefined ? jointCommand.buttons[i] : 0);
 
     if (msg.axes.every(axis => Math.abs(axis) < JOYSTICK_SENSITIVITY_THRESHOLD) && msg.buttons.every(button => button === 0)) {
-      // console.log('Joystick input is in neutral position, not publishing.');
       return;
     }
 
-    publisher.publish(msg);
+    joyPublisher.publish(msg);
     console.log('Published a joy message');
+  }
+
+  // Function to publish (x, y) coordinates to ROS2 topic /user_send_goal
+  function publishPointMessage(coordinates) {
+    const msg = new PointStamped();
+    msg.header.stamp = clock.now();
+    msg.header.frame_id = 'camera_color_frame';  // Frame of reference for the (x, y) coordinates
+    msg.point.x = coordinates.x;
+    msg.point.y = coordinates.y;
+    msg.point.z = 0;  // Set a default z value if necessary
+
+    pointPublisher.publish(msg);
+    console.log(`Published point message: (${coordinates.x}, ${coordinates.y})`);
   }
 }
 
