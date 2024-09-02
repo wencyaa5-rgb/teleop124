@@ -19,6 +19,7 @@ services:
           - ros2_service
     volumes:
       - ./ros2_ws:/home/cecilia/ws
+      - /dev:/dev
     tty: true
     command: /bin/bash
     labels:
@@ -32,6 +33,8 @@ services:
       context: ./teleop
       dockerfile: Dockerfile
     container_name: teleop_service
+    depends_on:
+      - ros2
     ports:
       - "8765:8765"
       - "8443:8443"
@@ -47,6 +50,7 @@ services:
       - ROS_DOMAIN_ID=42
       - PYTHONUNBUFFERED=1
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - GST_PLUGIN_PATH=/opt/app/ros2_ws/install/gst_bridge/lib/gst_bridge
     privileged: true
 
 networks:

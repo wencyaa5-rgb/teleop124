@@ -1,13 +1,11 @@
-
 const WebSocket = require('ws');
 const wrtc = require('wrtc');
 const rclnodejs = require('rclnodejs');
 const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
+const PointCloud2 = rclnodejs.require('sensor_msgs/msg/PointCloud2');
+const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
 const fs = require('fs');
 const path = require('path');
-
-// Define the new message type for sending (x, y) coordinates
-const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
 
 const XBOX360_WIRELESS_CONTROLLER_AXIS = {
   LEFT_STICK_LR: 0,
@@ -70,7 +68,7 @@ async function main() {
   let dataChannel;
   let remoteDescriptionSet = false;
   let pendingCandidates = [];
-  let joyPublisher, pointPublisher;
+  let joyPublisher, pointPublisher, pointCloudSubscriber;
   let clock;
 
   signalingSocket.on('open', async () => {
@@ -122,6 +120,10 @@ async function main() {
 
     dataChannel.onclose = () => {
       console.log('Data channel is closed');
+    };
+
+    dataChannel.onerror = (error) => {
+      console.error('Data channel error:', error);
     };
 
     dataChannel.onmessage = (event) => {
@@ -218,6 +220,11 @@ async function main() {
     joyPublisher = node.createPublisher('sensor_msgs/msg/Joy', 'joy');
     pointPublisher = node.createPublisher('geometry_msgs/msg/PointStamped', '/user_send_goal');
 
+    // Subscribe to the point cloud topic
+    pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/camera/depth/color/points', (msg) => {
+      sendPointCloudOverWebRTC(msg);
+    });
+
     rclnodejs.spin(node);
   }).catch((err) => {
     console.error(err);
@@ -231,6 +238,7 @@ async function main() {
     msg.axes = jointCommand.axes ? jointCommand.axes.concat(defaultAxes).slice(0, 8) : defaultAxes;
     msg.axes[0] = -msg.axes[0];
     msg.axes[1] = -msg.axes[1];
+
     msg.axes[4] = jointCommand.buttons[LEFT_TRIGGER];
     msg.axes[5] = jointCommand.buttons[RIGHT_TRIGGER];
     msg.axes[6] = jointCommand.buttons[CROSS_KEY_L] - jointCommand.buttons[CROSS_KEY_R];
@@ -258,6 +266,66 @@ async function main() {
     pointPublisher.publish(msg);
     console.log(`Published point message: (${coordinates.x}, ${coordinates.y})`);
   }
+
+  // Function to send sampled point cloud data over WebRTC
+  function sendPointCloudOverWebRTC(pointCloud) {
+    if (dataChannel.readyState === 'open') {
+      const pointCloudData = serializeAndSamplePointCloud(pointCloud);
+      const jsonString = JSON.stringify({
+        type: 'point-cloud',
+        data: pointCloudData
+      });
+
+      dataChannel.send(jsonString);
+      console.log('Sampled point cloud data sent successfully');
+    } else {
+      console.debug('Data channel is not open');
+    }
+  }
+
+  // Function to serialize and sample point cloud data
+  function serializeAndSamplePointCloud(pointCloud, samplingRate = 0.001) {
+    const serialized = {
+      header: {
+        stamp: {
+          sec: pointCloud.header.stamp.sec,
+          nanosec: pointCloud.header.stamp.nanosec
+        },
+        frame_id: pointCloud.header.frame_id
+      },
+      height: pointCloud.height,
+      width: pointCloud.width,
+      fields: pointCloud.fields.map(field => ({
+        name: field.name,
+        offset: field.offset,
+        datatype: field.datatype,
+        count: field.count
+      })),
+      is_bigendian: pointCloud.is_bigendian,
+      point_step: pointCloud.point_step,
+      row_step: pointCloud.row_step,
+      is_dense: pointCloud.is_dense,
+      data: samplePointCloudData(pointCloud.data, samplingRate)
+    };
+
+    return serialized;
+  }
+
+  // Function to sample point cloud data
+  function samplePointCloudData(data, samplingRate) {
+    const sampledData = [];
+    const totalPoints = data.length / 16; // Assuming each point is 16 bytes
+
+    for (let i = 0; i < totalPoints; i++) {
+      if (Math.random() < samplingRate) {
+        const start = i * 16;
+        sampledData.push(...data.slice(start, start + 16));
+      }
+    }
+
+    return sampledData;
+  }
+
 }
 
 // Start the main function
