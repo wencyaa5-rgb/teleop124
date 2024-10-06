@@ -21,8 +21,19 @@ services:
       - ./ros2_ws:/home/cecilia/ws
       - /dev:/dev
     devices:
-      - "/dev/ttyACM0:/dev/ttyACM0"  # Add this line to allow access to the specific serial device
-      - "/dev/input/js0:/dev/input/js0"  # Add this line to allow access to the specific serial device
+      - "/dev/ttyACM0:/dev/ttyACM0"
+      - "/dev/input/js0:/dev/input/js0"
+      - "/dev/video0:/dev/video0"
+      - "/dev/video1:/dev/video1"
+      - "/dev/video2:/dev/video2"
+      - "/dev/video3:/dev/video3"
+      - "/dev/video4:/dev/video4"
+      - "/dev/video5:/dev/video5"
+      - "/dev/video6:/dev/video6"
+      - "/dev/video7:/dev/video7"
+      - "/dev/video8:/dev/video8"
+      - "/dev/video9:/dev/video9"
+      - "/dev/video10:/dev/video10"
     tty: true
     command: /bin/bash
     labels:
@@ -46,9 +57,10 @@ services:
         aliases:
           - teleop_service
     volumes:
+      # -  /home/cecilia/intuitive_motion/robot/teleop:/opt/app/
       - ./teleop/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
     devices:
-      - "/dev/video4:/dev/video4" 
+      - "/dev/video10:/dev/video10" 
     environment:
       - ROS_DOMAIN_ID=42
       - PYTHONUNBUFFERED=1
