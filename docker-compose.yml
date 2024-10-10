@@ -57,15 +57,31 @@ services:
         aliases:
           - teleop_service
     volumes:
-      # -  /home/cecilia/intuitive_motion/robot/teleop:/opt/app/
+      # Supervisor configuration
       - ./teleop/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+
+      # PulseAudio configuration
+      - /run/user/1000/pulse/native:/tmp/pulse-native
+      - ~/.config/pulse/cookie:/tmp/pulse-cookie:ro
+
     devices:
-      - "/dev/video10:/dev/video10" 
+      - "/dev/video10:/dev/video10"
+
     environment:
+      # Existing environment variables
       - ROS_DOMAIN_ID=42
       - PYTHONUNBUFFERED=1
       - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
       - GST_PLUGIN_PATH=/opt/app/ros2_ws/install/gst_bridge/lib/gst_bridge
+
+      # PulseAudio environment variables
+      - PULSE_SERVER=unix:/tmp/pulse-native
+      - PULSE_COOKIE=/tmp/pulse-cookie
+      - XDG_RUNTIME_DIR=/tmp
+
+    # Set the user to 'cecilia' to match the host's PulseAudio permissions
+    # user: cecilia
+
     privileged: true
 
 networks:
