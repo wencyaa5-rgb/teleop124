@@ -10,9 +10,11 @@ services:
     container_name: ros2_service
     environment:
       - ROS_DOMAIN_ID=42
-      - DISPLAY=unix:0
+      - DISPLAY=${DISPLAY}  # Forward X11 display
       - ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
       - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/ws/fastdds.xml
+      - ROBOT_IP=192.168.0.198
+      - RS_SERIAL_NO=317222074547
     networks:
       ros2_network:
         aliases:
@@ -20,6 +22,7 @@ services:
     volumes:
       - ./ros2_ws:/home/cecilia/ws
       - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # X11 socket for GUI
     devices:
       - "/dev/ttyACM0:/dev/ttyACM0"
       - "/dev/input/js0:/dev/input/js0"
@@ -64,6 +67,9 @@ services:
       - /run/user/1000/pulse/native:/tmp/pulse-native
       - ~/.config/pulse/cookie:/tmp/pulse-cookie:ro
 
+      # X11 socket for GUI (if needed)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # Mount the X11 socket for GUI
+
     devices:
       - "/dev/video10:/dev/video10"
 
@@ -78,6 +84,9 @@ services:
       - PULSE_SERVER=unix:/tmp/pulse-native
       - PULSE_COOKIE=/tmp/pulse-cookie
       - XDG_RUNTIME_DIR=/tmp
+
+      # Forward X11 display
+      - DISPLAY=${DISPLAY}
 
     # Set the user to 'cecilia' to match the host's PulseAudio permissions
     # user: cecilia

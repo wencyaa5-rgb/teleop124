@@ -11,4 +11,10 @@ pygobject==3.34.0
 websockets==10.0
 PyYAML
 
+
 pyrealsense2
+imageio
+torch
+open3d
+opencv-python
+numpy==1.24.0
