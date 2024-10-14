@@ -221,7 +221,7 @@ async function main() {
     pointPublisher = node.createPublisher('geometry_msgs/msg/PointStamped', '/user_send_goal');
 
     // Subscribe to the point cloud topic
-    pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/camera/depth/color/points', (msg) => {
+    pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/downsampled_points', (msg) => {
       sendPointCloudOverWebRTC(msg);
     });
 
@@ -284,7 +284,7 @@ async function main() {
   }
 
   // Function to serialize and sample point cloud data
-  function serializeAndSamplePointCloud(pointCloud, samplingRate = 0.001) {
+  function serializeAndSamplePointCloud(pointCloud) {
     const serialized = {
       header: {
         stamp: {
@@ -305,27 +305,11 @@ async function main() {
       point_step: pointCloud.point_step,
       row_step: pointCloud.row_step,
       is_dense: pointCloud.is_dense,
-      data: samplePointCloudData(pointCloud.data, samplingRate)
+      data: pointCloud.data,
     };
 
     return serialized;
   }
-
-  // Function to sample point cloud data
-  function samplePointCloudData(data, samplingRate) {
-    const sampledData = [];
-    const totalPoints = data.length / 16; // Assuming each point is 16 bytes
-
-    for (let i = 0; i < totalPoints; i++) {
-      if (Math.random() < samplingRate) {
-        const start = i * 16;
-        sampledData.push(...data.slice(start, start + 16));
-      }
-    }
-
-    return sampledData;
-  }
-
 }
 
 // Start the main function
