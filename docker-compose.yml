@@ -10,7 +10,7 @@ services:
     container_name: ros2_service
     environment:
       - ROS_DOMAIN_ID=42
-      - DISPLAY=${DISPLAY}  # Forward X11 display
+      - DISPLAY=0  # Forward X11 display
       - ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
       - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/ws/fastdds.xml
       - ROBOT_IP=192.168.0.198

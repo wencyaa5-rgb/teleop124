@@ -129,7 +129,7 @@ async function main() {
     dataChannel.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'click-coordinates') {
-        publishPointMessage(data.data);
+        publishPointMessage(data.coordinates);
       } else {
         publishJoyMessage(data);
       }
@@ -254,17 +254,17 @@ async function main() {
     console.log('Published a joy message');
   }
 
-  // Function to publish (x, y) coordinates to ROS2 topic /user_send_goal
+  // Function to publish (x, y, z) coordinates to ROS2 topic /user_send_goal
   function publishPointMessage(coordinates) {
     const msg = new PointStamped();
     msg.header.stamp = clock.now();
-    msg.header.frame_id = 'camera_color_frame';  // Frame of reference for the (x, y) coordinates
+    msg.header.frame_id = 'camera_depth_optical_frame';  // Frame of reference for the (x, y) coordinates
     msg.point.x = coordinates.x;
     msg.point.y = coordinates.y;
-    msg.point.z = 0;  // Set a default z value if necessary
+    msg.point.z = coordinates.z;  // Set a default z value if necessary
 
     pointPublisher.publish(msg);
-    console.log(`Published point message: (${coordinates.x}, ${coordinates.y})`);
+    console.log(`Published point message: (${coordinates.x}, ${coordinates.y}, ${coordinates.z})`);
   }
 
   // Function to send sampled point cloud data over WebRTC
@@ -305,7 +305,7 @@ async function main() {
       point_step: pointCloud.point_step,
       row_step: pointCloud.row_step,
       is_dense: pointCloud.is_dense,
-      data: pointCloud.data,
+      data: pointCloud.data
     };
 
     return serialized;
