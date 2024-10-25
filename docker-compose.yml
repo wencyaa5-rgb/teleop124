@@ -15,6 +15,7 @@ services:
       - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/ws/fastdds.xml
       - ROBOT_IP=192.168.0.198
       - RS_SERIAL_NO=317222074547
+      - RS_SERIAL_NO_2=250222073549 # conveyor belt camera
     networks:
       ros2_network:
         aliases:
@@ -37,6 +38,15 @@ services:
       - "/dev/video8:/dev/video8"
       - "/dev/video9:/dev/video9"
       - "/dev/video10:/dev/video10"
+      - "/dev/video11:/dev/video11"
+      - "/dev/video12:/dev/video12"
+      - "/dev/video13:/dev/video13"
+      - "/dev/video14:/dev/video14"
+      - "/dev/video15:/dev/video15"
+      - "/dev/video16:/dev/video16"
+      - "/dev/video17:/dev/video17"
+      - "/dev/video18:/dev/video18"
+      - "/dev/video19:/dev/video19"
     tty: true
     command: /bin/bash
     labels:
@@ -44,7 +54,6 @@ services:
     user: cecilia
     stdin_open: true
     privileged: true
-
   teleop:
     build:
       context: ./teleop

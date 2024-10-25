@@ -128,8 +128,9 @@ async function main() {
 
     dataChannel.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log("HERE");
       if (data.type === 'click-coordinates') {
-        publishPointMessage(data.coordinates);
+        publishPointMessage(data.videoId, data.coordinates);
       } else {
         publishJoyMessage(data);
       }
@@ -255,10 +256,10 @@ async function main() {
   }
 
   // Function to publish (x, y, z) coordinates to ROS2 topic /user_send_goal
-  function publishPointMessage(coordinates) {
+  function publishPointMessage(videoId, coordinates) {
     const msg = new PointStamped();
     msg.header.stamp = clock.now();
-    msg.header.frame_id = 'camera_depth_optical_frame';  // Frame of reference for the (x, y) coordinates
+    msg.header.frame_id = videoId ;  // this is a hack, we just use videoId to differentiate the two streams
     msg.point.x = coordinates.x;
     msg.point.y = coordinates.y;
     msg.point.z = coordinates.z;  // Set a default z value if necessary
