@@ -4,6 +4,7 @@ const rclnodejs = require('rclnodejs');
 const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
 const PointCloud2 = rclnodejs.require('sensor_msgs/msg/PointCloud2');
 const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
+const Int32 = rclnodejs.require('std_msgs/msg/Int32');
 const fs = require('fs');
 const path = require('path');
 
@@ -68,7 +69,7 @@ async function main() {
   let dataChannel;
   let remoteDescriptionSet = false;
   let pendingCandidates = [];
-  let joyPublisher, pointPublisher, pointCloudSubscriber;
+  let joyPublisher, pointPublisher, binPublisher, pointCloudSubscriber;
   let clock;
 
   signalingSocket.on('open', async () => {
@@ -128,10 +129,13 @@ async function main() {
 
     dataChannel.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log("HERE");
       if (data.type === 'click-coordinates') {
         publishPointMessage(data.videoId, data.coordinates);
-      } else {
+      } if (data.type === 'move_to_bin') {
+        console.log("RECEIVED BIN REQUEST")
+        publishMoveToBinMessage(data.id);
+      }
+      else {
         publishJoyMessage(data);
       }
     };
@@ -220,6 +224,7 @@ async function main() {
 
     joyPublisher = node.createPublisher('sensor_msgs/msg/Joy', 'joy');
     pointPublisher = node.createPublisher('geometry_msgs/msg/PointStamped', '/user_send_goal');
+    binPublisher = node.createPublisher('std_msgs/msg/Int32', '/user_send_bin');
 
     // Subscribe to the point cloud topic
     pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/downsampled_points', (msg) => {
@@ -266,6 +271,16 @@ async function main() {
 
     pointPublisher.publish(msg);
     console.log(`Published point message: (${coordinates.x}, ${coordinates.y}, ${coordinates.z})`);
+  }
+
+  function publishMoveToBinMessage(bin_id) {
+    // Create a message with the bin_id
+    const binMessage = new Int32();
+    binMessage.data = bin_id;
+  
+    // Publish the message to the /user_send_bin topic
+    binPublisher.publish(binMessage);
+    console.log(`Published bin ID ${bin_id} to /user_send_bin`);
   }
 
   // Function to send sampled point cloud data over WebRTC
