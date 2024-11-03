@@ -266,6 +266,7 @@ async function main() {
     }
     const msg = new JoyMessage();
     msg.header.stamp = clock.now(); 
+    msg.header.frame_id = '';  // Ensure frame_id is a string
 
     msg.axes = jointCommand.axes ? jointCommand.axes.concat(defaultAxes).slice(0, 8) : defaultAxes;
     msg.axes[0] = -msg.axes[0];
