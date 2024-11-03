@@ -22,6 +22,7 @@ services:
           - ros2_service
     volumes:
       - ./ros2_ws:/home/cecilia/ws
+      - move_program_interfaces:/home/cecilia/ws/src/move_program_interfaces
       - /dev:/dev
       - /tmp/.X11-unix:/tmp/.X11-unix:rw  # X11 socket for GUI
     devices:
@@ -54,6 +55,7 @@ services:
     user: cecilia
     stdin_open: true
     privileged: true
+
   teleop:
     build:
       context: ./teleop
@@ -79,8 +81,11 @@ services:
       # X11 socket for GUI (if needed)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw  # Mount the X11 socket for GUI
 
+      # Shared volume for action interfaces
+      - ./ros2_ws/src/move_program_interfaces:/opt/app/ros2_ws/src/move_program_interfaces
+
     devices:
-      - "/dev/video10:/dev/video10"
+      - "/dev/video16:/dev/video16"
 
     environment:
       # Existing environment variables
@@ -97,11 +102,12 @@ services:
       # Forward X11 display
       - DISPLAY=${DISPLAY}
 
-    # Set the user to 'cecilia' to match the host's PulseAudio permissions
-    # user: cecilia
-
     privileged: true
 
 networks:
   ros2_network:
     driver: bridge
+
+volumes:
+  move_program_interfaces:
+    driver: local

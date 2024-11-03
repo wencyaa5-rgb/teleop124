@@ -4,6 +4,15 @@ const rclnodejs = require('rclnodejs');
 const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
 const PointCloud2 = rclnodejs.require('sensor_msgs/msg/PointCloud2');
 const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
+let JamConveyor, ReleaseConveyor;
+try {
+  JamConveyor = rclnodejs.require('move_program_interfaces/action/JamConveyor');
+  ReleaseConveyor = rclnodejs.require('move_program_interfaces/action/ReleaseConveyor');
+  console.log("Successfully loaded action types for JamConveyor and ReleaseConveyor.");
+} catch (error) {
+  console.error("Error loading action types:", error);
+}
+
 const Int32 = rclnodejs.require('std_msgs/msg/Int32');
 const fs = require('fs');
 const path = require('path');
@@ -70,6 +79,7 @@ async function main() {
   let remoteDescriptionSet = false;
   let pendingCandidates = [];
   let joyPublisher, pointPublisher, binPublisher, pointCloudSubscriber;
+  let jamConveyorClient, releaseConveyorClient;
   let clock;
 
   signalingSocket.on('open', async () => {
@@ -129,17 +139,24 @@ async function main() {
 
     dataChannel.onmessage = (event) => {
       const data = JSON.parse(event.data);
+    
       if (data.type === 'click-coordinates') {
         publishPointMessage(data.videoId, data.coordinates);
-      } if (data.type === 'move_to_bin') {
-        console.log("RECEIVED BIN REQUEST")
+      } else if (data.type === 'move_to_bin') {
+        console.log("RECEIVED BIN REQUEST");
         publishMoveToBinMessage(data.id);
-      }
-      else {
+      } else if (data.type === 'conveyor_control') {
+        // Handle conveyor control commands
+        if (data.command === 'jam') {
+          (async () => { await callJamConveyorAction(); })();  // Fire and forget
+        } else if (data.command === 'release') {
+          (async () => { await callReleaseConveyorAction(); })();  // Fire and forget
+        }
+      } else {
         publishJoyMessage(data);
       }
     };
-
+    
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         signalingSocket.send(JSON.stringify({
@@ -226,18 +243,27 @@ async function main() {
     pointPublisher = node.createPublisher('geometry_msgs/msg/PointStamped', '/user_send_goal');
     binPublisher = node.createPublisher('std_msgs/msg/Int32', '/user_send_bin');
 
+    // Create action clients for jam and release conveyor actions
+    jamConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/JamConveyor', 'jam_conveyor');
+    releaseConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/ReleaseConveyor', 'release_conveyor');
+
     // Subscribe to the point cloud topic
     pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/downsampled_points', (msg) => {
       sendPointCloudOverWebRTC(msg);
     });
 
     rclnodejs.spin(node);
+    console.log("Joy Publisher Node Fully Initialized");
   }).catch((err) => {
     console.error(err);
   });
 
   // Function to normalize joystick input to 8 axes and 11 buttons and publish joystick command to ROS2 /joy
   function publishJoyMessage(jointCommand) {
+    if (!clock) {
+      console.log("Clock not initialized.")
+      return
+    }
     const msg = new JoyMessage();
     msg.header.stamp = clock.now(); 
 
@@ -326,7 +352,26 @@ async function main() {
 
     return serialized;
   }
+
+  // Function to call jam conveyor action
+  async function callJamConveyorAction() {
+    const goalMsg = new JamConveyor.Goal();
+    console.log('Sending jam conveyor goal...');
+    const goalHandle = await jamConveyorClient.sendGoal(goalMsg);
+    const result = await goalHandle.getResult();
+    console.log(`Jam conveyor action result: ${result.success ? 'Success' : 'Failed'}`);
+  }
+
+  // Function to call release conveyor action
+  async function callReleaseConveyorAction() {
+    const goalMsg = new ReleaseConveyor.Goal();
+    console.log('Sending release conveyor goal...');
+    const goalHandle = await releaseConveyorClient.sendGoal(goalMsg);
+    const result = await goalHandle.getResult();
+    console.log(`Release conveyor action result: ${result.success ? 'Success' : 'Failed'}`);
+  }
 }
+
 
 // Start the main function
 main();

@@ -60,11 +60,20 @@ RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build && . /opt/app/ros2_ws/inst
 # Set the working directory back to /opt/app
 WORKDIR /opt/app
 
+# Copy the ros2_entrypoint.sh script into the container
+COPY ros2_entrypoint.sh /opt/app/ros2_entrypoint.sh
+
+# Make it executable
+RUN chmod +x /opt/app/ros2_entrypoint.sh
+
 # Copy the supervisor configuration file
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Expose ports if needed
 EXPOSE 8765 8443 9090
 
-# Run supervisord to start the services
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Use the new script as the entry point
+# CMD ["/opt/app/ros2_entrypoint.sh"]
+
+ENTRYPOINT ["/opt/app/ros2_entrypoint.sh"]
+
