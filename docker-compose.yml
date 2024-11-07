@@ -8,6 +8,12 @@ services:
       args:
         USERNAME: cecilia
     container_name: ros2_service
+    env_file: # used for AWS secret access key for boto
+      - /home/${USERNAME}/.env
+      ## Example format
+      # # .env file for docker s3 access
+      # AWS_ACCESS_KEY_ID=XXXXXXXXXXXXX
+      # AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXX
     environment:
       - ROS_DOMAIN_ID=42
       - DISPLAY=0  # Forward X11 display

@@ -4,6 +4,7 @@ const rclnodejs = require('rclnodejs');
 const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
 const PointCloud2 = rclnodejs.require('sensor_msgs/msg/PointCloud2');
 const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
+const Trigger = rclnodejs.require('std_srvs/srv/Trigger');
 let JamConveyor, ReleaseConveyor;
 try {
   JamConveyor = rclnodejs.require('move_program_interfaces/action/JamConveyor');
@@ -16,6 +17,7 @@ try {
 const Int32 = rclnodejs.require('std_msgs/msg/Int32');
 const fs = require('fs');
 const path = require('path');
+const { start } = require('repl');
 
 const XBOX360_WIRELESS_CONTROLLER_AXIS = {
   LEFT_STICK_LR: 0,
@@ -79,7 +81,7 @@ async function main() {
   let remoteDescriptionSet = false;
   let pendingCandidates = [];
   let joyPublisher, pointPublisher, binPublisher, pointCloudSubscriber;
-  let jamConveyorClient, releaseConveyorClient;
+  let jamConveyorClient, releaseConveyorClient, startRecordingClient, stopRecordingClient;
   let clock;
 
   signalingSocket.on('open', async () => {
@@ -148,9 +150,18 @@ async function main() {
       } else if (data.type === 'conveyor_control') {
         // Handle conveyor control commands
         if (data.command === 'jam') {
-          (async () => { await callJamConveyorAction(); })();  // Fire and forget
+          (async () => await callJamConveyorAction())();  // Fire and forget
         } else if (data.command === 'release') {
-          (async () => { await callReleaseConveyorAction(); })();  // Fire and forget
+          (async () => await callReleaseConveyorAction())();  // Fire and forget
+        }
+      } else if (data.type === 'video_manager') {
+        if (data.command === 'start') {
+           // Fire and forget
+           // TODO: send feedback to indicate whether recording started successfully
+          startRecording();
+        } else if (data.command === 'stop') {
+           // Fire and forget to stop video recording
+          stopRecording();
         }
       } else {
         publishJoyMessage(data);
@@ -246,6 +257,10 @@ async function main() {
     // Create action clients for jam and release conveyor actions
     jamConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/JamConveyor', 'jam_conveyor');
     releaseConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/ReleaseConveyor', 'release_conveyor');
+
+    // Initialize service clients
+    startRecordingClient = node.createClient('std_srvs/srv/Trigger', 'start_recording');
+    stopRecordingClient = node.createClient('std_srvs/srv/Trigger', 'stop_recording');
 
     // Subscribe to the point cloud topic
     pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/downsampled_points', (msg) => {
@@ -371,6 +386,29 @@ async function main() {
     const result = await goalHandle.getResult();
     console.log(`Release conveyor action result: ${result.success ? 'Success' : 'Failed'}`);
   }
+
+  function startRecording() {
+    if (startRecordingClient.isServiceServerAvailable()) {
+      const request = new Trigger.Request();
+      startRecordingClient.sendRequest(request, (response) => {
+        console.log(`Start Recording Result: ${typeof response}`, response);
+      });
+    } else {
+      console.error("Start recording service not available");
+    }
+  }
+
+  function stopRecording() {
+    if (stopRecordingClient.isServiceServerAvailable()) {
+      const request = new Trigger.Request();
+      stopRecordingClient.sendRequest(request, (response) => {
+        console.log(`Stop Recording Result: ${typeof response}`, response);
+      });
+    } else {
+      console.error("Stop recording service not available");
+    }
+  }
+
 }
 
 
