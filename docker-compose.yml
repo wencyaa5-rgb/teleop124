@@ -20,8 +20,8 @@ services:
       - ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
       - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/ws/fastdds.xml
       - ROBOT_IP=192.168.0.198
-      - RS_SERIAL_NO=317222074547
-      - RS_SERIAL_NO_2=250222073549 # conveyor belt camera
+      - RS_SERIAL_NO=250222073549
+      - RS_SERIAL_NO_2=317222074547 # conveyor belt camera
     networks:
       ros2_network:
         aliases:
