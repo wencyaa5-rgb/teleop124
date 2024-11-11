@@ -5,37 +5,13 @@ import asyncio
 import json
 import argparse
 import logging
-import os
 from util import get_mac_address, generate_robot_id, PIPELINE_DESC
-
-# Add this before importing gi to suppress GStreamer warnings
-os.environ['GST_DEBUG'] = '0'  # Suppress all GStreamer debug output
-os.environ['GST_SILENT_DUMP'] = '1'  # Suppress GStreamer memory dump messages
-os.environ['GST_WARNING'] = '0'  # Suppress GStreamer warnings
 
 import gi
 from gi.repository import Gst
 from gi.repository import GstWebRTC
 from gi.repository import GstSdp
 from gi.repository import GLib
-
-# Create a custom GStreamer log handler to filter warnings
-class GstLogHandler:
-    def __init__(self):
-        self.handler_id = None
-
-    def message_handler(self, domain, level, message, user_data):
-        # Only pass through ERROR level messages
-        if level >= Gst.DebugLevel.ERROR:
-            return True
-        return False
-
-    def setup(self):
-        if hasattr(Gst, 'debug_remove_log_function'):
-            # Remove default log handler
-            Gst.debug_remove_log_function(None)
-            # Add custom handler
-            self.handler_id = Gst.debug_add_log_function(self.message_handler, None)
 
 # Uncomment this when debugging
 # Gst.debug_set_default_threshold(Gst.DebugLevel.DEBUG)
@@ -57,8 +33,7 @@ class WebRTCClient:
         self.ice_candidate_queue = []
         self.robot_id = generate_robot_id(get_mac_address())  # Get robot_id using MAC address
         self.bearer_token = 'fb4a1a4c486cec5708f906e90b7c040d'  # Replace with your actual token
-        self.remote_description_set = False
-        
+
     async def connect(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         ssl_context.check_hostname = False
@@ -266,15 +241,7 @@ def check_plugins():
     return True
 
 if __name__=='__main__':
-    # Set up GStreamer warning suppression
-    gst_log_handler = GstLogHandler()
-    
     Gst.init(None)
-    gst_log_handler.setup()  # Set up custom log handler after Gst.init()
-    
-    # Set GStreamer debug level to only show errors
-    Gst.debug_set_default_threshold(Gst.DebugLevel.ERROR)
-    
     if not check_plugins():
         sys.exit(1)
     parser = argparse.ArgumentParser()
