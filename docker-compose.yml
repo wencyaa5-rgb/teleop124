@@ -91,7 +91,8 @@ services:
       - ./ros2_ws/src/move_program_interfaces:/opt/app/ros2_ws/src/move_program_interfaces
 
     devices:
-      - "/dev/video16:/dev/video16"
+      - "/dev/video12:/dev/video12"   # web cam
+      - "/dev/video18:/dev/video18"  # wrist cam
 
     environment:
       # Existing environment variables
