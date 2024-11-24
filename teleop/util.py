@@ -32,8 +32,8 @@ webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 turn-server=t
 v4l2src device=/dev/video16 ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv. \
 rosimagesrc ros-topic="/camera/camera_1/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv. \
 rosimagesrc ros-topic="/camera/camera_2/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv. \
+pulsesrc ! audioconvert ! audioresample ! opusenc bitrate=64000 ! rtpopuspay ! application/x-rtp,media=audio,encoding-name=OPUS,payload=98 ! sendrecv.
 '''
-# pulsesrc ! audioconvert ! audioresample ! opusenc bitrate=64000 ! rtpopuspay ! application/x-rtp,media=audio,encoding-name=OPUS,payload=98 ! sendrecv.
 
 def get_mac_address():
     try:
