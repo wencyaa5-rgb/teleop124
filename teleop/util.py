@@ -26,15 +26,16 @@ BUBBLE_API_POST_STATUS_URL = 'https://service.intuitivemotion.ai/api/1.1/wf/robo
 # v4l2src device=/dev/video14 ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv.
 # '''
 # Set the GST_PLUGIN_PATH environment variable
-# TODO: figure out how to automatically identify realsense camera port instead of hardcoding it below in the pipelin /dev/video10
+# TODO: figure out how to automatically identify realsense camera port instead of hardcoding it below in the pipeline /dev/video10
 PIPELINE_DESC = '''
 webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 turn-server=turn://your.turn.server:3478?transport=udp latency=100 
-v4l2src device=/dev/video12 ! videoconvert ! videoscale ! video/x-raw,width=640,height=480,pixel-aspect-ratio=1/1 ! videocrop left=0 right=320 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv.
-rosimagesrc ros-topic="/camera/camera_1/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv. \
-rosimagesrc ros-topic="/camera/camera_2/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=5 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv. \
-v4l2src device=/dev/video18 ! videoconvert ! videoscale ! video/x-raw,width=640,height=480,framerate=30/1 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=99 ! sendrecv.
+v4l2src device=/dev/video12 ! videoconvert ! videoscale ! video/x-raw,width=640,height=360 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv. \
+rosimagesrc ros-topic="/camera/camera_1/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv. \
+rosimagesrc ros-topic="/camera/camera_2/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=98 ! sendrecv. \
+rosimagesrc ros-topic="/camera/camera_3/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=99 ! sendrecv. \
 '''
-# pulsesrc ! audioconvert ! audioresample ! opusenc bitrate=64000 ! rtpopuspay ! application/x-rtp,media=audio,encoding-name=OPUS,payload=98 ! sendrecv.
+# v4l2src device=/dev/video18 ! videoconvert ! videoscale ! video/x-raw,width=640,height=480,framerate=30/1 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=99 ! sendrecv.
+# pulsesrc ! audioconvert ! audioresample ! opusenc bitrate=64000 ! rtpopuspay ! application/x-rtp,media=audio,encoding-name=OPUS,payload=98 ! sendrecv. 317222075084
 
 def get_mac_address():
     try:
