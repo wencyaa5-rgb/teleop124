@@ -37,12 +37,23 @@ pulsesrc ! audioconvert ! audioresample ! audio/x-raw,rate=16000,channels=1 ! op
 '''
 # v4l2src device=/dev/video18 ! videoconvert ! videoscale ! video/x-raw,width=640,height=480,framerate=30/1 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=99 ! sendrecv.
 
+
 def get_mac_address():
-    try:
-        mac = open('/sys/class/net/eth0/address').readline()
-    except:
-        mac = open('/sys/class/net/wlan0/address').readline()
-    return mac.strip()
+    # List of possible interfaces to check for a MAC address
+    interfaces = ['enp89s0', 'enxa0cec85d1e46', 'wlo1', 'docker0', 'docker_gwbridge']
+
+    for interface in interfaces:
+        try:
+            mac_path = f'/sys/class/net/{interface}/address'
+            if os.path.exists(mac_path):
+                with open(mac_path, 'r') as f:
+                    mac = f.readline().strip()
+                    return mac
+        except FileNotFoundError:
+            continue
+
+    raise RuntimeError("No valid MAC address found for the container")
+
 
 def generate_robot_id(mac_address):
     file_path = os.path.join(os.path.dirname(__file__), 'robot_id.txt')
