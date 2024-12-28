@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    <participant profile_name="default_profile" is_default_profile="true">
+        <rtps>
+            <builtin>
+                <!-- Keep multicast for local discovery -->
+                <!-- The default multicast locators are usually set automatically if not overridden. -->
+                
+                <!-- Add the remote GPU machine’s container/service as an initial peer for unicast discovery. 
+                     Assume you have a service name 'ml_service' on the overlay network. -->
+                <initialPeersList>
+                    <locator>
+                        <udpv4>
+                            <address>ml_service</address> 
+                            <port>7666</port>
+                        </udpv4>
+                    </locator>
+                </initialPeersList>
+
+                <!-- Set where this participant listens for metatraffic. 
+                     Using 0.0.0.0 means listen on all interfaces, 
+                     allowing multicast discovery locally and unicast from remote. -->
+                <metatrafficUnicastLocatorList>
+                    <locator>
+                        <udpv4>
+                            <address>0.0.0.0</address>
+                            <port>7666</port>
+                        </udpv4>
+                    </locator>
+                </metatrafficUnicastLocatorList>
+
+                <!-- (Optional) You might also explicitly define multicast locators if needed:
+                <metatrafficMulticastLocatorList>
+                    <locator>
+                        <udpv4>
+                            <address>239.255.0.1</address>
+                            <port>7400</port>
+                        </udpv4>
+                    </locator>
+                </metatrafficMulticastLocatorList>
+                -->
+            </builtin>
+        </rtps>
+    </participant>
+</profiles>
