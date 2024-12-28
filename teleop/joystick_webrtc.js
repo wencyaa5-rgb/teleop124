@@ -45,6 +45,7 @@ const XBOX360_CONTROLLER_BUTTON = {
   XBOX360_BTN_POWER: 16,
   XBOX360_BTN_STICK_LEFT: 10,
   XBOX360_BTN_STICK_RIGHT: 11,
+  XBOX360_SHARE_BUTTON: 17,  // use this share button as delete for data collection
 };
 const buttonIndices = Object.values(XBOX360_CONTROLLER_BUTTON);
 const defaultAxes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
