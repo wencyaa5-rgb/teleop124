@@ -4,6 +4,7 @@ const rclnodejs = require('rclnodejs');
 const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
 const PointCloud2 = rclnodejs.require('sensor_msgs/msg/PointCloud2');
 const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
+const Float32MultiArray = rclnodejs.require('std_msgs/msg/Float32MultiArray');
 const Trigger = rclnodejs.require('std_srvs/srv/Trigger');
 let JamConveyor, ReleaseConveyor;
 try {
@@ -81,7 +82,7 @@ async function main() {
   let dataChannel;
   let remoteDescriptionSet = false;
   let pendingCandidates = [];
-  let joyPublisher, pointPublisher, binPublisher, pointCloudSubscriber;
+  let joyPublisher, pointPublisher, binPublisher, pointCloudSubscriber, bboxSubscriber;
   let jamConveyorClient, releaseConveyorClient, startRecordingClient, stopRecordingClient;
   let clock;
 
@@ -267,6 +268,26 @@ async function main() {
     pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/downsampled_points', (msg) => {
       sendPointCloudOverWebRTC(msg);
     });
+
+    // -----------------------------------------------------------
+    // Subscribe to bounding box messages
+    // -----------------------------------------------------------
+    bboxSubscriber = node.createSubscription(
+      Float32MultiArray,
+      '/detected_dish_bounding_box',
+      (msg) => {
+        // msg.data is an array [x, y, w, h]
+        // We’ll forward it over the data channel if open
+        console.log('Received bounding box:', msg.data);
+        if (dataChannel && dataChannel.readyState === 'open') {
+          dataChannel.send(JSON.stringify({
+            type: 'bounding-box',
+            videoId: 'receivedVideo2', // or whichever video ID is relevant
+            bbox: msg.data
+          }));
+        }
+      }
+    );
 
     rclnodejs.spin(node);
     console.log("Joy Publisher Node Fully Initialized");
