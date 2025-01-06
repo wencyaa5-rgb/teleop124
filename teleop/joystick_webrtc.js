@@ -278,7 +278,7 @@ async function main() {
       (msg) => {
         // msg.data is an array [x, y, w, h]
         // We’ll forward it over the data channel if open
-        // console.log('Received bounding box:', msg.data);
+        console.log('Received bounding box:', msg.data);
         if (dataChannel && dataChannel.readyState === 'open') {
           dataChannel.send(JSON.stringify({
             type: 'bounding-box',
