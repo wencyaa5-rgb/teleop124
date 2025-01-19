@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const wrtc = require('wrtc');
 const rclnodejs = require('rclnodejs');
 const JoyMessage = rclnodejs.require('sensor_msgs/msg/Joy');
+const String = rclnodejs.require('std_msgs/msg/String')
 const PointCloud2 = rclnodejs.require('sensor_msgs/msg/PointCloud2');
 const PointStamped = rclnodejs.require('geometry_msgs/msg/PointStamped');
 const Float32MultiArray = rclnodejs.require('std_msgs/msg/Float32MultiArray');
@@ -19,6 +20,7 @@ const Int32 = rclnodejs.require('std_msgs/msg/Int32');
 const fs = require('fs');
 const path = require('path');
 const { start } = require('repl');
+
 
 const XBOX360_WIRELESS_CONTROLLER_AXIS = {
   LEFT_STICK_LR: 0,
@@ -70,6 +72,47 @@ async function getRobotId(delay = 1000) {
   }
 }
 
+/**
+ * Loads the robot.json file content.
+ *
+ * @param {number} delay - Delay in milliseconds before retrying if an error occurs.
+ * @returns {Promise<object|null>} - Parsed JSON object from robot.json or null if an error occurs.
+ */
+async function getRobotData(delay = 1000) {
+  const filePath = path.join(__dirname, 'robot.json');
+
+  while (true) {
+    try {
+      const fileContent = fs.readFileSync(filePath, 'utf8').trim();
+      return JSON.parse(fileContent);
+    } catch (err) {
+      console.error('Error reading robot data from file:', err);
+      console.log(`Retrying in ${delay}ms...`);
+      await sleep(delay);
+    }
+  }
+}
+
+/**
+ * Extracts the workspace_pixels_text value from the robot data.
+ *
+ * @returns {Promise<number[]|null>} - Array of integers from workspace_pixels_text or null if not available.
+ */
+async function getWorkspacePixels() {
+  try {
+    const robotData = await getRobotData();
+    if (!!robotData) {
+      return robotData.workspace_pixels_text;
+    } else {
+      console.warn('workspace_pixels is not available or is not an array.');
+      return null;
+    }
+  } catch (err) {
+    console.error('Error retrieving workspace_pixels:', err);
+    return null;
+  }
+}
+
 async function main() {
   const robotId = await getRobotId();
   console.log(`Robot ID: ${robotId}`);
@@ -80,9 +123,11 @@ async function main() {
 
   let peerConnection;
   let dataChannel;
+  let bboxChannel;
   let remoteDescriptionSet = false;
   let pendingCandidates = [];
-  let joyPublisher, pointPublisher, binPublisher, pointCloudSubscriber, bboxSubscriber;
+  let latestBoundingBox = null;
+  let joyPublisher, pointPublisher, binPublisher, pointCloudSubscriber, workspacePixelsPublisher, bboxSubscriber;
   let jamConveyorClient, releaseConveyorClient, startRecordingClient, stopRecordingClient;
   let clock;
 
@@ -128,6 +173,12 @@ async function main() {
 
     peerConnection = new wrtc.RTCPeerConnection(configuration);
     dataChannel = peerConnection.createDataChannel('dataChannel');
+
+    // Create a low-priority channel for bounding box messages
+    bboxChannel = peerConnection.createDataChannel('bboxChannel', { priority: 'low' });
+    bboxChannel.onopen = () => console.log('Low-priority bounding box channel is open');
+    bboxChannel.onclose = () => console.log('Low-priority bounding box channel is closed');
+
 
     dataChannel.onopen = () => {
       console.log('Data channel is open');
@@ -255,6 +306,17 @@ async function main() {
     joyPublisher = node.createPublisher('sensor_msgs/msg/Joy', 'joy');
     pointPublisher = node.createPublisher('geometry_msgs/msg/PointStamped', '/user_send_goal');
     binPublisher = node.createPublisher('std_msgs/msg/Int32', '/user_send_bin');
+      
+    workspacePixelsPublisher = node.createPublisher('std_msgs/msg/String', 'workspace_pixels');
+    // Publish workspace_pixels data periodically
+    setInterval(async () => {
+      const workspacePixels = await getWorkspacePixels();
+      const message = new String();
+      message.data = (workspacePixels !== null && workspacePixels !== undefined) ? workspacePixels : '';
+
+      workspacePixelsPublisher.publish(message);
+      console.log('Published workspace_pixels:', workspacePixels);
+    }, 5000); // Publish every 5 seconds
 
     // Create action clients for jam and release conveyor actions
     jamConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/JamConveyor', 'jam_conveyor');
@@ -270,24 +332,26 @@ async function main() {
     });
 
     // -----------------------------------------------------------
-    // Subscribe to bounding box messages
+    // Subscribe to bounding box messages and sending it over the channel
     // -----------------------------------------------------------
     bboxSubscriber = node.createSubscription(
       Float32MultiArray,
       '/detected_dish_bounding_box',
       (msg) => {
-        // msg.data is an array [x, y, w, h]
-        // We’ll forward it over the data channel if open
-        console.log('Received bounding box:', msg.data);
-        if (dataChannel && dataChannel.readyState === 'open') {
-          dataChannel.send(JSON.stringify({
-            type: 'bounding-box',
-            videoId: 'receivedVideo2', // or whichever video ID is relevant
-            bbox: msg.data
-          }));
-        }
+        latestBoundingBox = msg.data; // Store the latest bounding box
       }
     );
+    // Send bounding box updates at 1 Hz
+    setInterval(() => {
+      if (latestBoundingBox && bboxChannel && bboxChannel.readyState === 'open') {
+        bboxChannel.send(JSON.stringify({
+          type: 'bounding-box',
+          videoId: 'receivedVideo2',
+          bbox: latestBoundingBox
+        }));
+        console.log('Bounding box sent at reduced rate');
+      }
+    }, 1000); // Adjust interval (in milliseconds) as needed
 
     rclnodejs.spin(node);
     console.log("Joy Publisher Node Fully Initialized");
