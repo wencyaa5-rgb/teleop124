@@ -1,0 +1,184 @@
+version: '3.3'
+
+networks:
+  ros2_network: {}
+
+services:
+  ros2:
+    build:
+      context: ./ros2_ws
+      dockerfile: Dockerfile
+      args:
+        USERNAME: unloader
+    container_name: ros2_service
+    env_file: # used for AWS secret access key for boto
+      - /home/${USERNAME}/.env
+      ## Example format
+      # # .env file for docker s3 access
+      # AWS_ACCESS_KEY_ID=XXXXXXXXXXXXX
+      # AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXX
+    environment:
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+      - ROS_DOMAIN_ID=42
+      - DISPLAY=${DISPLAY}  # Forward X11 display
+      # - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/fastdds.xml
+      # - ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+      # - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/ws/fastdds.xml
+      - ROBOT_IP=192.168.1.201
+      - RS_SERIAL_NO=250222073549
+      - RS_SERIAL_NO_2=317222075084 # conveyor belt camera
+      - RS_SERIAL_NO_3=317222074547 # wrist cam
+    ipc: host
+    # ulimits:                                 # allow SCHED_FIFO & lock pages
+    #   rtprio: 99
+    #   memlock:
+    #     soft: -1
+    #     hard: -1
+    networks: [ros2_network]
+    volumes:
+      # - ./fastdds.xml:/home/unloader/fastdds.xml
+      - ./ros2_ws:/home/unloader/ws
+      # - move_program_interfaces:/home/unloader/ws/src/move_program_interfaces
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # X11 socket for GUI
+      - $HOME/.Xauthority:/home/unloader/.Xauthority 
+    # devices:
+    #   - "/dev/bus/usb:/dev/bus/usb"
+    #   - "/dev/ttyACM0:/dev/ttyACM0"
+    #   - "/dev/input/js0:/dev/input/js0"
+    #   - "/dev/video0:/dev/video0"
+    #   - "/dev/video1:/dev/video1"
+    #   - "/dev/video2:/dev/video2"
+    #   - "/dev/video3:/dev/video3"
+    #   - "/dev/video4:/dev/video4"
+    #   - "/dev/video5:/dev/video5"
+    #   - "/dev/video6:/dev/video6"
+    #   - "/dev/video7:/dev/video7"
+    #   - "/dev/video8:/dev/video8"
+    #   - "/dev/video9:/dev/video9"
+    #   - "/dev/video10:/dev/video10"
+    #   - "/dev/video11:/dev/video11"
+    #   - "/dev/video12:/dev/video12"
+    #   - "/dev/video13:/dev/video13"
+    #   - "/dev/video14:/dev/video14"
+    #   - "/dev/video15:/dev/video15"
+    #   - "/dev/video16:/dev/video16"
+    #   - "/dev/video17:/dev/video17"
+    #   - "/dev/video18:/dev/video18"
+    #   - "/dev/video19:/dev/video19"
+    tty: true
+    command: /bin/bash
+    labels:
+      - "com.docker.compose.devcontainer:1"
+    user: unloader
+    stdin_open: true
+    privileged: true
+    # security_opt:
+    #   - "seccomp:unconfined"
+
+  teleop:
+    build:
+      context: ./teleop
+      dockerfile: Dockerfile
+    container_name: teleop_service
+    networks: [ros2_network]
+    privileged: true
+    ipc: host
+    volumes:
+      # Supervisor configuration
+      - ./teleop/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+
+      # PulseAudio configuration
+      - /run/user/1000/pulse/native:/tmp/pulse-native
+      - ~/.config/pulse/cookie:/tmp/pulse-cookie:ro
+
+      # X11 socket for GUI (if needed)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw  # Mount the X11 socket for GUI
+
+      # Shared volume for action interfaces
+      - ./ros2_ws/src/move_program_interfaces:/opt/app/ros2_ws/src/move_program_interfaces
+
+    # devices:
+    #   - "/dev/video0:/dev/video0"
+    #   - "/dev/video1:/dev/video1"
+    #   - "/dev/video2:/dev/video2"
+    #   - "/dev/video3:/dev/video3"
+    #   - "/dev/video4:/dev/video4"
+    #   - "/dev/video5:/dev/video5"
+    #   - "/dev/video6:/dev/video6"
+    #   - "/dev/video7:/dev/video7"
+    #   - "/dev/video8:/dev/video8"
+    #   - "/dev/video9:/dev/video9"
+    #   - "/dev/video10:/dev/video10"
+
+    environment:
+      ROBOT_ID: "${ROBOT_ID}"
+      ROS_DOMAIN_ID: "42"
+      PYTHONUNBUFFERED: "1"
+      RMW_IMPLEMENTATION: "rmw_fastrtps_cpp"
+      GST_PLUGIN_PATH: "/opt/app/ros2_ws/install/gst_bridge/lib/gst_bridge"
+
+      # PulseAudio
+      PULSE_SERVER: "unix:/tmp/pulse-native"
+      PULSE_COOKIE: "/tmp/pulse-cookie"
+      XDG_RUNTIME_DIR: "/tmp"
+
+      # X11
+      DISPLAY: "${DISPLAY}"
+  # teleop:
+  #   build:
+  #     context: ./teleop
+  #     dockerfile: Dockerfile
+  #   container_name: teleop_service
+  #   depends_on:
+  #     - ros2
+  #   # ports:
+  #   #   - "8765:8765"
+  #   #   - "8443:8443"
+  #   network_mode: host
+  #   ipc: host
+  #   # networks:
+  #   #   ros2_network:
+  #   #     aliases:
+  #   #       - teleop_service
+  #   volumes:
+  #     # - ./fastdds.xml:/home/unloader/fastdds.xml
+  #     # Supervisor configuration
+  #     - ./teleop/supervisord.conf:/etc/supervisor/conf.d/supervisord.conf
+
+  #     # PulseAudio configuration
+  #     - /run/user/1000/pulse/native:/tmp/pulse-native
+  #     - ~/.config/pulse/cookie:/tmp/pulse-cookie:ro
+
+  #     # X11 socket for GUI (if needed)
+  #     - /tmp/.X11-unix:/tmp/.X11-unix:rw  # Mount the X11 socket for GUI
+
+  #     # Shared volume for action interfaces
+  #     - ./ros2_ws/src/move_program_interfaces:/opt/app/ros2_ws/src/move_program_interfaces
+
+  #   devices:
+  #     - "/dev/video12:/dev/video12"   # web cam
+  #     - "/dev/video18:/dev/video18"  # wrist cam
+
+  #   environment:
+  #     # Existing environment variables
+  #     - ROS_DOMAIN_ID=42
+  #     - PYTHONUNBUFFERED=1
+  #     - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+  #     - GST_PLUGIN_PATH=/opt/app/ros2_ws/install/gst_bridge/lib/gst_bridge
+  #     # - FASTRTPS_DEFAULT_PROFILES_FILE=/home/${USERNAME}/fastdds.xml
+  
+  #     # PulseAudio environment variables
+  #     - PULSE_SERVER=unix:/tmp/pulse-native
+  #     - PULSE_COOKIE=/tmp/pulse-cookie
+  #     - XDG_RUNTIME_DIR=/tmp
+
+  #     # Forward X11 display
+  #     - DISPLAY=${DISPLAY}
+
+  #   privileged: true
+
+
+volumes:
+  move_program_interfaces:
+    driver: local

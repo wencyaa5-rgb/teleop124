@@ -12,9 +12,18 @@ ENV NODE_VERSION 20.15.1
 # Install necessary dependencies
 COPY apt-requirements.txt /app/apt-requirements.txt
 RUN apt-get update && \
-    grep -vE "^\s*#" /app/apt-requirements.txt | xargs apt-get install -y && \
-    apt-get install -y libgirepository1.0-dev libgstreamer-plugins-bad1.0-dev supervisor && \
-    apt-get clean
+    apt-get install -y --no-install-recommends \
+        python3-venv \
+        # GI + GStreamer runtime (already present)
+        python3-gi python3-gi-cairo \
+        supervisor \
+        gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 \
+        gstreamer1.0-plugins-good gstreamer1.0-tools \
+        # >>> ADD THESE for WebRTC <<<
+        gstreamer1.0-plugins-bad gir1.2-gst-plugins-bad-1.0 \
+        # ----------------------------------------------- \
+    && rm -rf /var/lib/apt/lists/*
+
 
 RUN mkdir -p /var/log/supervisor
 
@@ -32,14 +41,16 @@ ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 # Set the working directory
 WORKDIR /opt/app
 
-# Create a virtual environment
-RUN python3.10 -m venv /opt/app/venv
 # Activate the virtual environment
-ENV VIRTUAL_ENV /env
-ENV PATH="/opt/app/venv/bin:$PATH"
+ENV VIRTUAL_ENV=/opt/app/venv
+RUN python3 -m venv --system-site-packages $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Copy the requirements file and install dependencies
-COPY requirements.txt /opt/app/requirements.txt
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt  # websockets etc.
+
 RUN pip install --upgrade wheel pip setuptools
 RUN pip install -r /opt/app/requirements.txt
 

@@ -4,7 +4,7 @@ import requests
 import logging
 import json
 
-from util import BUBBLE_API_GET_TIMESTAMP_URL, BUBBLE_API_GET_ROBOT_URL, generate_robot_id, get_mac_address
+from util import BUBBLE_API_GET_TIMESTAMP_URL, BUBBLE_API_GET_ROBOT_URL, generate_robot_id
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -12,8 +12,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: move bearer token to a secure source
 BEARER_TOKEN = 'fb4a1a4c486cec5708f906e90b7c040d'
-MAC_ADDRESS = get_mac_address()
-ROBOT_ID = generate_robot_id(MAC_ADDRESS)
+ROBOT_ID = generate_robot_id()
 GSTREAMER_SCRIPT = 'gstreamer_webrtc.py'
 JOYSTICK_SCRIPT = 'joystick_webrtc.js'
 
