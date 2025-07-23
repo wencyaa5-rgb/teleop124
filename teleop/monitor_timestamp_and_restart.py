@@ -1,3 +1,4 @@
+import os
 import time
 import subprocess
 import requests
@@ -107,23 +108,28 @@ def write_robot_to_file(robot_data):
         logger.error(f"Error writing robot data to file: {e}")
 
 def monitor_timestamp():
-    """Monitors the timestamp and restarts the GStreamer and Joystick scripts if the timestamp changes."""
+    """Monitors the timestamp and restarts scripts when a new request arrives."""
+    # ⬇ fetch once right away
+    if not os.path.exists(ROBOT_JSON_FILE):
+        robot_data = get_robot(ROBOT_ID)
+        write_robot_to_file(robot_data)
+
     previous_timestamp = None
     while True:
         current_timestamp = get_last_request_time()
-        if current_timestamp is not None:
-            if current_timestamp != previous_timestamp:
-                logger.info(f"Timestamp changed to {current_timestamp}. Restarting GStreamer and Joystick scripts.")
-                restart_gstreamer_script()
-                time.sleep(1)
-                restart_joystick_script()
+        if current_timestamp and current_timestamp != previous_timestamp:
+            logger.info("Timestamp changed to %s. Restarting scripts.", current_timestamp)
+            restart_gstreamer_script()
+            time.sleep(1)
+            restart_joystick_script()
 
-                # Fetch robot workspace_pixels and write to file
+            if not os.path.exists(ROBOT_JSON_FILE):
                 robot_data = get_robot(ROBOT_ID)
                 write_robot_to_file(robot_data)
 
-                previous_timestamp = current_timestamp
-        time.sleep(10)  # Check the timestamp every 10 seconds
+            previous_timestamp = current_timestamp
+
+        time.sleep(10)
 
 if __name__ == "__main__":
     monitor_timestamp()

@@ -37,7 +37,7 @@ def report_status():
         except Exception as e:
             logging.info(f"Error reporting status: {e}")
 
-        time.sleep(60)  # Report every 60 seconds
+        time.sleep(120)  # Report every 60 seconds
 
 if __name__ == "__main__":
     report_status()

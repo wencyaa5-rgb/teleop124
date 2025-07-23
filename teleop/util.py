@@ -2,6 +2,7 @@ import os
 import socket
 import uuid
 import logging
+from pathlib import Path
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -31,27 +32,50 @@ BUBBLE_API_GET_ROBOT_URL = 'https://service.intuitivemotion.ai/api/1.1/obj'
 PIPELINE_DESC = '''
 webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 turn-server=turn://your.turn.server:3478?transport=udp latency=100 
 v4l2src device=/dev/video6 ! videoconvert ! videoscale ! video/x-raw,width=640,height=360 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv. \
-rosimagesrc ros-topic="/camera/camera_1/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv. \
-rosimagesrc ros-topic="/camera/camera_2/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=98 ! sendrecv. \
-rosimagesrc ros-topic="/camera/camera_3/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=99 ! sendrecv. \
+v4l2src device=/dev/video6 ! videoconvert ! videoscale ! video/x-raw,width=640,height=360 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv. \
+v4l2src device=/dev/video6 ! videoconvert ! videoscale ! video/x-raw,width=640,height=360 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv. \
+v4l2src device=/dev/video6 ! videoconvert ! videoscale ! video/x-raw,width=640,height=360 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv. \
 '''
+# PIPELINE_DESC = '''
+# webrtcbin name=sendrecv stun-server=stun://stun.l.google.com:19302 turn-server=turn://your.turn.server:3478?transport=udp latency=100 
+# v4l2src device=/dev/video6 ! videoconvert ! videoscale ! video/x-raw,width=640,height=360 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=96 ! sendrecv. \
+# rosimagesrc ros-topic="/camera/camera_1/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! sendrecv. \
+# rosimagesrc ros-topic="/camera/camera_2/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=98 ! sendrecv. \
+# rosimagesrc ros-topic="/camera/camera_3/color/image_raw" ! videoconvert ! queue ! vp8enc target-bitrate=500000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=99 ! sendrecv. \
+# '''
 # v4l2src device=/dev/video18 ! videoconvert ! videoscale ! video/x-raw,width=640,height=480,framerate=30/1 ! queue ! vp8enc target-bitrate=300000 deadline=1 cpu-used=8 ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload=99 ! sendrecv.
 
 # keep your fixed namespace constant:
 _NAMESPACE = uuid.UUID("12345678-1234-5678-1234-567812345678")
+_ROBOT_FILE = Path(__file__).with_name("robot_id.txt")
 
 def generate_robot_id() -> str:
     """
     Deterministically derive a UUID‑v5 from the ROBOT_ID env‑var.
-    Raises if the variable is missing.
+    If robot_id.txt exists, return its content (cached value).
+    Otherwise create the file with the computed UUID.
     """
+    # 1) Return cached value if present
+    if _ROBOT_FILE.exists():
+        robot_id = _ROBOT_FILE.read_text().strip()
+        logging.info("Using cached robot_id: %s", robot_id)
+        return robot_id
+
+    # 2) Compute the UUID from the env variable
     name = os.getenv("ROBOT_ID")
     if not name:
         raise RuntimeError("ROBOT_ID environment variable is not set")
 
-    robot_uuid = str(uuid.uuid5(_NAMESPACE, name))
-    logging.info("ROBOT_ID is %s", robot_uuid)
-    return robot_uuid
+    robot_id = str(uuid.uuid5(_NAMESPACE, name))
+    logging.info("Generated new robot_id: %s", robot_id)
+
+    # 3) Persist for the next container start
+    try:
+        _ROBOT_FILE.write_text(robot_id)
+    except Exception as e:
+        logging.warning("Could not write robot_id.txt: %s", e)
+
+    return robot_id
 
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
