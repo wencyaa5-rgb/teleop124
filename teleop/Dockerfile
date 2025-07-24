@@ -1,79 +1,75 @@
-# Use the official Ubuntu base image
-# ROS2 Humble supports 22.04
+# ─────────────────────────  BASE IMAGE  ──────────────────────────
+# Ubuntu 22.04 + ROS Humble
 FROM osrf/ros:humble-desktop
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
 
-ENV NVM_DIR /usr/local/nvm
-ENV NODE_VERSION 20.15.1
-
+# ─────────────────────────  SYSTEM DEPS  ─────────────────────────
 # Install necessary dependencies
 COPY apt-requirements.txt /app/apt-requirements.txt
 RUN apt-get update && \
-    grep -vE "^\s*#" /app/apt-requirements.txt | xargs apt-get install -y && \
-    apt-get install -y libgirepository1.0-dev libgstreamer-plugins-bad1.0-dev supervisor && \
-    apt-get clean
+    apt-get install -y --no-install-recommends \
+        # ── python / build tools ───────────────────────────────
+        python3-venv build-essential cmake pkg-config \
+        python3-gi python3-gi-cairo supervisor \
+        # ── gstreamer core & plugins ───────────────────────────
+        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+        gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 \
+        gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+        gstreamer1.0-tools \
+        # ── WebRTC & ICE extras ────────────────────────────────
+        libgstreamer-plugins-bad1.0-0         \
+        gir1.2-gst-plugins-bad-1.0            \
+        gstreamer1.0-nice libnice10 gir1.2-nice-0.1 \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /var/log/supervisor
 
-# installs nvm (Node Version Manager)
-RUN mkdir $NVM_DIR && \
+# ─────────────────────  NODE (if you still need it)  ─────────────
+ENV NVM_DIR=/usr/local/nvm  NODE_VERSION=20.15.1
+RUN mkdir -p $NVM_DIR && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
-    . $NVM_DIR/nvm.sh && \
-    nvm install $NODE_VERSION && \
-    nvm alias default $NODE_VERSION && \
-    nvm use default
+    . $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm alias default $NODE_VERSION
+ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
-ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
-ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
-
-# Set the working directory
+# ───────────────────────  COPY ENTIRE REPO  ──────────────────────
+# build context is repo root
 WORKDIR /opt/app
+COPY requirements.txt .
 
-# Create a virtual environment
-RUN python3.10 -m venv /opt/app/venv
-# Activate the virtual environment
-ENV VIRTUAL_ENV /env
-ENV PATH="/opt/app/venv/bin:$PATH"
 
-# Copy the requirements file and install dependencies
-COPY requirements.txt /opt/app/requirements.txt
-RUN pip install --upgrade wheel pip setuptools
-RUN pip install -r /opt/app/requirements.txt
+# ───── virtual-env + dependency upgrades (done once) ──
+ENV VIRTUAL_ENV=/opt/app/venv
+RUN python3 -m venv --system-site-packages $VIRTUAL_ENV && \
+    $VIRTUAL_ENV/bin/pip install --upgrade pip setuptools wheel packaging && \
+    $VIRTUAL_ENV/bin/pip install --no-cache-dir -r requirements.txt
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
-# Copy the package.json and package-lock.json files
-COPY . /opt/app/
+# copy the ENTIRE repo (incl. ros‑gst‑bridge submodule) last
+COPY . .
 
-# Run the entry point script to set up the environment and install Node.js dependencies
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
-    npm install -g node-pre-gyp && \
-    npm install
+COPY ./package*.json ./
 
-# Build the ROS2 workspace and source it
+RUN npm install -g @mapbox/node-pre-gyp && \
+    npm install --omit=dev
+
+    
+# ─────────────────────────  GST BRIDGE PATH  ─────────────────────
+# gst_bridge installs its plugin here after colcon build
+ENV GST_PLUGIN_PATH=/opt/app/ros2_ws/install/gst_bridge/lib/gst_bridge:$GST_PLUGIN_PATH
+
+# ───────────────────────  BUILD ROS 2 WORKSPACE  ─────────────────
 WORKDIR /opt/app/ros2_ws
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build && . /opt/app/ros2_ws/install/setup.sh
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && colcon build && . /opt/app/ros2_ws/install/setup.sh >> ~/.bashrc
-# ENV GST_PLUGIN_PATH=/opt/app/ros2_ws/install/gst_bridge/lib/gst_bridge:$GST_PLUGIN_PATH
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
+    colcon build --symlink-install && \
+    . install/setup.sh
 
-# Set the working directory back to /opt/app
+# ─────────────────────────  SUPERVISOR ETC  ──────────────────────
 WORKDIR /opt/app
-
-# Copy the ros2_entrypoint.sh script into the container
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY ros2_entrypoint.sh /opt/app/ros2_entrypoint.sh
-
-# Make it executable
 RUN chmod +x /opt/app/ros2_entrypoint.sh
 
-# Copy the supervisor configuration file
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Expose ports if needed
 EXPOSE 8765 8443 9090
-
-# Use the new script as the entry point
-# CMD ["/opt/app/ros2_entrypoint.sh"]
-
 ENTRYPOINT ["/opt/app/ros2_entrypoint.sh"]
-

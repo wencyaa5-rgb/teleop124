@@ -5,13 +5,14 @@ import asyncio
 import json
 import argparse
 import logging
-from util import get_mac_address, generate_robot_id, PIPELINE_DESC
+from util import generate_robot_id, PIPELINE_DESC
 
 import gi
-from gi.repository import Gst
-from gi.repository import GstWebRTC
-from gi.repository import GstSdp
-from gi.repository import GLib
+gi.require_version('Gst', '1.0')
+gi.require_version('GstWebRTC', '1.0')
+gi.require_version('GstSdp', '1.0')
+
+from gi.repository import Gst, GstWebRTC, GstSdp, GLib
 
 # Uncomment this when debugging
 # Gst.debug_set_default_threshold(Gst.DebugLevel.DEBUG)
@@ -31,7 +32,7 @@ class WebRTCClient:
         self.server = server
         self.loop = loop
         self.ice_candidate_queue = []
-        self.robot_id = generate_robot_id(get_mac_address())  # Get robot_id using MAC address
+        self.robot_id = generate_robot_id()  # Get robot_id using MAC address
         self.bearer_token = 'fb4a1a4c486cec5708f906e90b7c040d'  # Replace with your actual token
 
     async def connect(self):

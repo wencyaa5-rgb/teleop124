@@ -2,7 +2,7 @@ import requests
 import json
 import time
 import logging
-from util import get_mac_address, generate_robot_id, get_ip_address, BUBBLE_API_POST_STATUS_URL
+from util import generate_robot_id, get_ip_address, BUBBLE_API_POST_STATUS_URL
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -15,8 +15,7 @@ def report_status():
         'Authorization': 'Bearer fb4a1a4c486cec5708f906e90b7c040d'  # Replace with your API token
     }
 
-    mac_address = get_mac_address()
-    robot_id = generate_robot_id(mac_address)
+    robot_id = generate_robot_id()
     logging.info(f"Robot ID: {robot_id}")
 
     while True:
@@ -38,7 +37,7 @@ def report_status():
         except Exception as e:
             logging.info(f"Error reporting status: {e}")
 
-        time.sleep(60)  # Report every 60 seconds
+        time.sleep(120)  # Report every 60 seconds
 
 if __name__ == "__main__":
     report_status()
