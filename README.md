@@ -5,10 +5,28 @@ ros2 workspace is installed with necessary dependencies such as MoveIt, built an
 
 
 ## Starting Docker Container
-* Ensure there's a `.env` file like the following that names the robot, which the container uses for generating a hashed 1:1 mapped robot id. For example,
-```
-unloader@unloader-alienware-2:~/teleop$ cat .env
+* Ensure there's a `.env` file that configures the robot and cameras. The container uses ROBOT_ID for generating a hashed 1:1 mapped robot id. For example,
+```bash
+# Copy and customize the example configuration
+cp .env.example .env
+
+# Example .env file:
 ROBOT_ID=unloader-alienware-2
+CAMERA_MODE=v4l2
+CAMERA_PRIMARY_DEVICE=/dev/video0
+CAMERA_NUM_STREAMS=1
+```
+
+* **Camera Configuration**: The system now supports flexible camera configuration through environment variables:
+  - `CAMERA_MODE`: Choose between `v4l2` (webcams), `ros` (ROS topics), or `mixed`
+  - `CAMERA_PRIMARY_DEVICE`: Primary video device (e.g., `/dev/video0`)
+  - `CAMERA_NUM_STREAMS`: Number of video streams (1-4)
+  - See `.env.example` for all available camera options
+
+* **Detect Available Cameras**: Use the detection script to find your camera devices:
+```bash
+cd teleop
+python detect_cameras.py
 ```
 
 * To start the container,

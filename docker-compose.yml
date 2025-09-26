@@ -123,6 +123,19 @@ services:
 
       # X11
       DISPLAY: "${DISPLAY}"
+
+      # Camera Configuration
+      CAMERA_MODE: "${CAMERA_MODE:-v4l2}"
+      CAMERA_PRIMARY_DEVICE: "${CAMERA_PRIMARY_DEVICE:-/dev/video6}"
+      CAMERA_SECONDARY_DEVICE: "${CAMERA_SECONDARY_DEVICE:-/dev/video14}"
+      CAMERA_WIDTH: "${CAMERA_WIDTH:-640}"
+      CAMERA_HEIGHT: "${CAMERA_HEIGHT:-360}"
+      CAMERA_TARGET_BITRATE: "${CAMERA_TARGET_BITRATE:-300000}"
+      CAMERA_CPU_USED: "${CAMERA_CPU_USED:-8}"
+      CAMERA_NUM_STREAMS: "${CAMERA_NUM_STREAMS:-1}"
+      CAMERA_ROS_TOPIC_1: "${CAMERA_ROS_TOPIC_1:-/camera/camera_1/color/image_raw}"
+      CAMERA_ROS_TOPIC_2: "${CAMERA_ROS_TOPIC_2:-/camera/camera_2/color/image_raw}"
+      CAMERA_ROS_TOPIC_3: "${CAMERA_ROS_TOPIC_3:-/camera/camera_3/color/image_raw}"
   # teleop:
   #   build:
   #     context: ./teleop
