@@ -1,0 +1,124 @@
+.video-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  margin: 5px 0;
+  overflow: hidden;
+  background: black;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.video-container.drag-mode {
+  border: 2px solid transparent;
+}
+
+.video-container.drag-mode:hover {
+  border-color: rgba(33, 150, 243, 0.5);
+  box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
+}
+
+.video-container.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  border-color: #2196F3;
+  box-shadow: 0 0 15px rgba(33, 150, 243, 0.5);
+}
+
+.video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  cursor: crosshair;
+}
+
+.click-point {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #FFFF33;
+  position: absolute;
+  z-index: 100;
+  box-shadow: 0 0 10px 5px #FFFF33, 0 0 20px 10px #FFD700;
+  pointer-events: none;
+}
+
+.bounding-box {
+  position: absolute;
+  border: 2px solid #00ff00;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.user-polygon-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.user-polygon-svg polygon {
+  fill: rgba(255, 0, 255, 0.2);
+  stroke: #ff00ff;
+  stroke-width: 2;
+  stroke-dasharray: 5,5;
+}
+
+.drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0.7;
+  transition: opacity 0.3s ease, background 0.3s ease;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.video-container.drag-mode:hover .drag-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.drag-hint {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(33, 150, 243, 0.8);
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.video-player.dragging {
+  opacity: 0.6;
+}
+
+.video-player.no-stream {
+  display: none;
+}
+
+.video-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #666;
+  font-size: 16px;
+  background: #1a1a1a;
+}

@@ -1,0 +1,313 @@
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.control-panel.mode-only {
+  padding: 15px 20px;
+  box-shadow: none;
+  background: transparent;
+  max-width: 100%;
+  margin: 0;
+}
+
+.control-panel.mode-only .mode-controls {
+  margin-bottom: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.connection-status {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.status-indicator {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status-indicator.connected {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.status-indicator.connecting {
+  background-color: #FF9800;
+  color: white;
+}
+
+.status-indicator.disconnected {
+  background-color: #f44336;
+  color: white;
+}
+
+.status-indicator.open {
+  background-color: #2196F3;
+  color: white;
+}
+
+.status-indicator.closed {
+  background-color: #9E9E9E;
+  color: white;
+}
+
+.main-controls {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.recording-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.control-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 5px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.home-button {
+  background-color: #2196F3;
+  color: white;
+}
+
+.home-button:hover {
+  background-color: #1976D2;
+}
+
+.start-recording {
+  background-color: #42A5F5;
+  color: white;
+}
+
+.start-recording:hover {
+  background-color: #2196F3;
+}
+
+.stop-recording {
+  background-color: #1E88E5;
+  color: white;
+}
+
+.stop-recording:hover {
+  background-color: #1976D2;
+}
+
+.start-button {
+  background-color: #2196F3;
+  color: white;
+}
+
+.start-button:hover {
+  background-color: #1976D2;
+}
+
+.stop-button {
+  background-color: #1565C0;
+  color: white;
+}
+
+.stop-button:hover {
+  background-color: #0D47A1;
+}
+
+.move-to-pose-button {
+  background-color: #42A5F5;
+  color: white;
+}
+
+.move-to-pose-button:hover {
+  background-color: #2196F3;
+}
+
+.clear-selection-button {
+  background-color: #64B5F6;
+  color: white;
+}
+
+.clear-selection-button:hover {
+  background-color: #42A5F5;
+}
+
+.bin-button {
+  background-color: #9C27B0;
+  color: white;
+  min-width: 80px;
+}
+
+.jam-button {
+  background-color: #f44336;
+  color: white;
+}
+
+.release-button {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.control-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.control-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.mode-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.mode-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mode-button {
+  padding: 10px 20px;
+  border: 2px solid #2196F3;
+  border-radius: 5px;
+  background: white;
+  color: #2196F3;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 180px;
+}
+
+.mode-button:hover {
+  background: #e3f2fd;
+}
+
+.mode-button.active {
+  background: #2196F3;
+  color: white;
+}
+
+
+/* .video-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+} */
+
+
+.mode-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.input-group label {
+  font-weight: 600;
+  color: #333;
+}
+
+.input-field {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #f9f9f9;
+}
+
+.coordinate-inputs {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.coordinate-inputs .input-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+
+
+/* .bin-controls {
+  text-align: center;
+}
+
+.bin-controls h3 {
+  margin-bottom: 15px;
+  color: #333;
+} */
+
+
+/* .bin-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.conveyor-controls {
+  text-align: center;
+}
+
+.conveyor-controls h3 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.conveyor-controls .control-button {
+  margin: 0 10px;
+} */
