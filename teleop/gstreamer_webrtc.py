@@ -34,6 +34,8 @@ class WebRTCClient:
         self.ice_candidate_queue = []
         self.robot_id = generate_robot_id()  # Get robot_id using MAC address
         self.bearer_token = 'fb4a1a4c486cec5708f906e90b7c040d'  # Replace with your actual token
+        self.remote_description_set = False  # Initialize remote description flag
+
 
     async def connect(self):
         ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)

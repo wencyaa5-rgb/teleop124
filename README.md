@@ -41,12 +41,18 @@ docker compose up -d teleop
 Helpful commands to check for errors,
 
 ```
-docker exec -it teleop_service /bin/bash
+docker exec -it teleop /bin/bash
+
+# to run scripts in docker, first source ros2 workspace
+source /opt/ros/humble/setup.bash 
+source ros2_ws/install/setup.bash
+
+# to view docker logs latest 20 lines
 sudo journalctl -u docker-compose-robot.service -n 20 -f
 ```
 
 # Manual start
-navigate into `intuitivemotion/robot` directory and run `docker-compose build --no-cache && docker-compose down && docker-compose up`
+navigate into `intuitivemotion/robot` directory and run `docker compose build --no-cache && docker compose down && docker compose up`
 
 
 ## Troubleshooting
