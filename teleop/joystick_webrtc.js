@@ -193,31 +193,35 @@ async function main() {
     };
 
     dataChannel.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-    
-      if (data.type === 'click-coordinates') {
-        publishPointMessage(data.videoId, data.coordinates);
-      } else if (data.type === 'move_to_bin') {
-        console.log("RECEIVED BIN REQUEST");
-        publishMoveToBinMessage(data.id);
-      } else if (data.type === 'conveyor_control') {
-        // Handle conveyor control commands
-        if (data.command === 'jam') {
-          (async () => await callJamConveyorAction())();  // Fire and forget
-        } else if (data.command === 'release') {
-          (async () => await callReleaseConveyorAction())();  // Fire and forget
+      try {
+        const data = JSON.parse(event.data);
+      
+        if (data.type === 'click-coordinates') {
+          publishPointMessage(data.videoId, data.coordinates);
+        } else if (data.type === 'move_to_bin') {
+          console.log("RECEIVED BIN REQUEST");
+          publishMoveToBinMessage(data.id);
+        } else if (data.type === 'conveyor_control') {
+          // Handle conveyor control commands
+          if (data.command === 'jam') {
+            (async () => await callJamConveyorAction())();  // Fire and forget
+          } else if (data.command === 'release') {
+            (async () => await callReleaseConveyorAction())();  // Fire and forget
+          }
+        } else if (data.type === 'video_manager') {
+          if (data.command === 'start') {
+             // Fire and forget
+             // TODO: send feedback to indicate whether recording started successfully
+            startRecording();
+          } else if (data.command === 'stop') {
+             // Fire and forget to stop video recording
+            stopRecording();
+          }
+        } else {
+          publishJoyMessage(data);
         }
-      } else if (data.type === 'video_manager') {
-        if (data.command === 'start') {
-           // Fire and forget
-           // TODO: send feedback to indicate whether recording started successfully
-          startRecording();
-        } else if (data.command === 'stop') {
-           // Fire and forget to stop video recording
-          stopRecording();
-        }
-      } else {
-        publishJoyMessage(data);
+      } catch (error) {
+        console.error('Error parsing data channel message:', error);
       }
     };
     
@@ -306,8 +310,8 @@ async function main() {
     joyPublisher = node.createPublisher('sensor_msgs/msg/Joy', 'joy');
     pointPublisher = node.createPublisher('geometry_msgs/msg/PointStamped', '/user_send_goal');
     binPublisher = node.createPublisher('std_msgs/msg/Int32', '/user_send_bin');
-      
     workspacePixelsPublisher = node.createPublisher('std_msgs/msg/String', 'workspace_pixels');
+    
     // Publish workspace_pixels data periodically
     setInterval(async () => {
       const workspacePixels = await getWorkspacePixels();
@@ -318,29 +322,46 @@ async function main() {
       console.log('Published workspace_pixels:', workspacePixels);
     }, 5000); // Publish every 5 seconds
 
-    // Create action clients for jam and release conveyor actions
-    jamConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/JamConveyor', 'jam_conveyor');
-    releaseConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/ReleaseConveyor', 'release_conveyor');
+    // Create action clients for jam and release conveyor actions (with error handling)
+    try {
+      if (JamConveyor && ReleaseConveyor) {
+        jamConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/JamConveyor', 'jam_conveyor');
+        releaseConveyorClient = new rclnodejs.ActionClient(node, 'move_program_interfaces/action/ReleaseConveyor', 'release_conveyor');
+      }
+    } catch (error) {
+      // Action types may not be available, continue without them
+    }
 
     // Initialize service clients
-    startRecordingClient = node.createClient('std_srvs/srv/Trigger', 'start_recording');
-    stopRecordingClient = node.createClient('std_srvs/srv/Trigger', 'stop_recording');
+    try {
+      startRecordingClient = node.createClient('std_srvs/srv/Trigger', 'start_recording');
+      stopRecordingClient = node.createClient('std_srvs/srv/Trigger', 'stop_recording');
+    } catch (error) {
+      // Service clients may not be available, continue without them
+    }
 
     // Subscribe to the point cloud topic
-    pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/downsampled_points', (msg) => {
-      sendPointCloudOverWebRTC(msg);
-    });
+    try {
+      pointCloudSubscriber = node.createSubscription(PointCloud2, '/camera/downsampled_points', (msg) => {
+        sendPointCloudOverWebRTC(msg);
+      });
+    } catch (error) {
+      // Point cloud subscriber may not be available
+    }
 
-    // -----------------------------------------------------------
     // Subscribe to bounding box messages and sending it over the channel
-    // -----------------------------------------------------------
-    bboxSubscriber = node.createSubscription(
-      Float32MultiArray,
-      '/detected_dish_bounding_box',
-      (msg) => {
-        latestBoundingBox = msg.data; // Store the latest bounding box
-      }
-    );
+    try {
+      bboxSubscriber = node.createSubscription(
+        Float32MultiArray,
+        '/detected_dish_bounding_box',
+        (msg) => {
+          latestBoundingBox = msg.data; // Store the latest bounding box
+        }
+      );
+    } catch (error) {
+      // Bounding box subscriber may not be available
+    }
+    
     // Send bounding box updates at 1 Hz
     setInterval(() => {
       if (latestBoundingBox && bboxChannel && bboxChannel.readyState === 'open') {
@@ -356,7 +377,7 @@ async function main() {
     rclnodejs.spin(node);
     console.log("Joy Publisher Node Fully Initialized");
   }).catch((err) => {
-    console.error(err);
+    console.error('Fatal error during ROS initialization:', err);
   });
 
   // Function to normalize joystick input to 8 axes and 11 buttons and publish joystick command to ROS2 /joy
@@ -365,6 +386,7 @@ async function main() {
       console.log("Clock not initialized.")
       return
     }
+    
     const msg = new JoyMessage();
     msg.header.stamp = clock.now(); 
     msg.header.frame_id = '';  // Ensure frame_id is a string

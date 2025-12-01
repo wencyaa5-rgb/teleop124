@@ -29,8 +29,8 @@ BUBBLE_API_GET_ROBOT_URL = 'https://service.intuitivemotion.ai/api/1.1/obj'
 # '''
 # Camera configuration defaults
 CAMERA_DEFAULTS = {
-    'primary_device': '/dev/video6',
-    'secondary_device': '/dev/video14',
+    'primary_device': '/dev/video0',
+    'secondary_device': '/dev/video0',
     'width': 640,
     'height': 360,
     'target_bitrate': 300000,
@@ -95,6 +95,8 @@ def generate_pipeline_desc():
             payload = 97 + i
             stream = f'''rosimagesrc ros-topic="{topics[i]}" ! videoconvert ! queue ! vp8enc target-bitrate={config['target_bitrate']} deadline=1 cpu-used={config['cpu_used']} ! rtpvp8pay ! application/x-rtp,media=video,encoding-name=VP8,payload={payload} ! sendrecv.'''
             streams.append(stream)
+
+
 
     pipeline_desc = pipeline_base + ' \\\n'.join(streams)
     logger.info(f"Generated pipeline with {len(streams)} stream(s) in '{config['camera_mode']}' mode")

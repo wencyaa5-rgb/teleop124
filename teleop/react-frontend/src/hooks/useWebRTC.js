@@ -118,18 +118,29 @@ export const useWebRTC = (robotId) => {
 
     //RemoteControl Step1: Establish Data Channel
     peerConnectionRef.current.ondatachannel = (event) => {
-      dataChannelRef.current = event.channel;
-      dataChannelRef.current.onopen = () => {
-        console.log('Data channel is open');
-        setDataChannelState('open');
-      };
-      dataChannelRef.current.onclose = () => {
-        console.log('Data channel is closed');
-        setDataChannelState('closed');
-      };
-      dataChannelRef.current.onmessage = (event) => {
-        handleDataChannelMessage(JSON.parse(event.data));
-      };
+      // Only use 'dataChannel' for control signals, ignore 'bboxChannel'
+      if (event.channel.label === 'dataChannel') {
+        dataChannelRef.current = event.channel;
+        dataChannelRef.current.onopen = () => {
+          console.log('Data channel is open');
+          setDataChannelState('open');
+        };
+        dataChannelRef.current.onclose = () => {
+          console.log('Data channel is closed');
+          setDataChannelState('closed');
+        };
+        dataChannelRef.current.onerror = (error) => {
+          console.error('Data channel error:', error);
+        };
+        dataChannelRef.current.onmessage = (event) => {
+          handleDataChannelMessage(JSON.parse(event.data));
+        };
+      } else if (event.channel.label === 'bboxChannel') {
+        // bboxChannel is only for receiving bounding boxes, not for sending control signals
+        event.channel.onmessage = (event) => {
+          handleDataChannelMessage(JSON.parse(event.data));
+        };
+      }
     };
 
     //WebRTC Step 3: Receive Video Stream
