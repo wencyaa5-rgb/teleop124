@@ -1,0 +1,552 @@
+项目名称TELEOP，是一个机器人远程操作系统，可以通过实时 WebRTC 连接实现对机器人的远程控制。可以把它理解为“工业机器人的遥控器”——操作员可以通过视频流和摇杆输入在任何地方控制机器人。
+TELEOP是一个设计精良的机器人远程操作系统，它巧妙地结合了：
+WebRTC 实现低延迟视频传输
+ROS2 提供机器人控制框架
+Docker 确保部署一致性
+Supervisor 保证服务可靠性
+
+我的 VS Code 已经通过 SSH 成功连接到远端主机 unloader1，并且远端的 VS Code Server 已经在运行（不是首次安装）。本地 VS Code 和远端 server 之间通过端口转发建立了通信通道，我可以在 VS Code 里打开远端文件、在远端终端运行命令，或在远端运行我的 teleop 程序。
+
+这是我mentor在我电脑成功运行的终端日志记录，你可以参照使用，但不要使用docker compose build --no-cache && docker compose up -d， 并且robot_id.txt已经成功建立。
+特别提示：这份成功连接的日志是很久之前，在这之后项目进行了修改，不过总体架构没有改变，给你这份之前的日志只是让你对比参考，但要明白，在这之后项目修改了的。
+
+python terminal:
+wency@wency-ThinkPad-E14-Gen-6:~$ ssh -X unloader1
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-32-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+70 updates can be applied immediately.
+7 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+11 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+Last login: Thu Oct  2 14:53:50 2025 from 127.0.0.1
+unloader@unloader-Alienware-Aurora-ACT1250:~$ cd teleop/
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop$ ls
+docker-compose.yml  fastdds.xml  package.json  README.md  requirements.txt  ros2_ws  teleop
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop$ cd teleop/
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ ls
+apt-requirements.txt   docker-compose.yml   joystick_webrtc.js                package-lock.json  requirements.txt    ros2_ws
+base_cam_gstreamer.py  Dockerfile           monitor_timestamp_and_restart.py  README.md          robot.json          supervisord.conf
+detect_cameras.py      gstreamer_webrtc.py  package.json                      report_status.py   ros2_entrypoint.sh  util.py
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ docker compose build --no-cache && docker compose up -d
+WARN[0000] /home/unloader/teleop/teleop/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Building 33.3s (23/23) FINISHED                                                                                                                                                     
+ => [internal] load local bake definitions                                                                                                                                         0.0s
+ => => reading from stdin 531B                                                                                                                                                     0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                               0.0s
+ => => transferring dockerfile: 4.17kB                                                                                                                                             0.0s
+ => [internal] load metadata for docker.io/osrf/ros:humble-desktop                                                                                                                 0.4s
+ => [internal] load .dockerignore                                                                                                                                                  0.0s
+ => => transferring context: 2B                                                                                                                                                    0.0s
+ => CACHED [ 1/16] FROM docker.io/osrf/ros:humble-desktop@sha256:9004a3dcc960539fa01b194985da762bb25281c42277256fec9b29527f22b09e                                                  0.0s
+ => [internal] load build context                                                                                                                                                  0.0s
+ => => transferring context: 723B                                                                                                                                                  0.0s
+ => [ 2/16] COPY apt-requirements.txt /app/apt-requirements.txt                                                                                                                    0.0s
+ => [ 3/16] RUN apt-get update &&     apt-get install -y --no-install-recommends         python3-venv build-essential cmake pkg-config         python3-gi  python3-gi-cairo  sup  12.9s
+ => [ 4/16] RUN mkdir -p /var/log/supervisor                                                                                                                                       0.1s 
+ => [ 5/16] RUN mkdir -p "/usr/local/nvm" &&     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash &&     . "/usr/local/nvm/nvm.sh" && nvm install   6.5s 
+ => [ 6/16] WORKDIR /opt/app                                                                                                                                                       0.0s 
+ => [ 7/16] COPY requirements.txt .                                                                                                                                                0.0s 
+ => [ 8/16] RUN python3 -m venv --system-site-packages "/opt/app/venv" &&     "/opt/app/venv/bin/pip" install --upgrade pip setuptools wheel packaging &&     "/opt/app/venv/bin/  3.9s 
+ => [ 9/16] COPY . .                                                                                                                                                               0.0s 
+ => [10/16] WORKDIR /opt/app/ros2_ws                                                                                                                                               0.0s 
+ => [11/16] RUN . /opt/ros/humble/setup.sh &&     colcon build --symlink-install                                                                                                   0.3s 
+ => [12/16] WORKDIR /opt/app                                                                                                                                                       0.0s 
+ => [13/16] RUN . /opt/ros/humble/setup.sh &&     . /opt/app/ros2_ws/install/setup.sh &&     npm install -g @mapbox/node-pre-gyp &&     npm install --omit=dev        # use npm c  8.2s 
+ => [14/16] COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf                                                                                                          0.0s 
+ => [15/16] COPY ros2_entrypoint.sh /opt/app/ros2_entrypoint.sh                                                                                                                    0.0s 
+ => [16/16] RUN chmod +x /opt/app/ros2_entrypoint.sh                                                                                                                               0.1s 
+ => exporting to image                                                                                                                                                             0.6s 
+ => => exporting layers                                                                                                                                                            0.6s 
+ => => writing image sha256:3d690a057c66e28596cac85ee57c65477e90bb1a0ca512c2bed70a99a991714c                                                                                       0.0s 
+ => => naming to docker.io/library/teleop-teleop                                                                                                                                   0.0s
+ => resolving provenance for metadata file                                                                                                                                         0.0s
+[+] Building 1/1
+ ✔ teleop-teleop  Built                                                                                                                                                            0.0s 
+WARN[0000] /home/unloader/teleop/teleop/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Running 3/3
+ ✔ Container teleop_service     Recreated                                                                                                                                          0.9s 
+ ✔ Network teleop_ros2_network  Created                                                                                                                                            0.0s 
+ ✔ Container teleop             Started                                                                                                                                            0.1s 
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ docker e^Cc -it teleop_service /bin/bash
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ docker ps
+CONTAINER ID   IMAGE           COMMAND                  CREATED         STATUS         PORTS                                                                                                NAMES
+cb25b12a9f88   teleop-teleop   "/opt/app/ros2_entry…"   7 seconds ago   Up 6 seconds   0.0.0.0:8443->8443/tcp, [::]:8443->8443/tcp, 0.0.0.0:8765->8765/tcp, [::]:8765->8765/tcp, 9090/tcp   teleop
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ docker exec -it teleop /bin/bash
+root@cb25b12a9f88:/opt/app# echo CAMERA_PRIMARY_DEVICE
+CAMERA_PRIMARY_DEVICE
+root@cb25b12a9f88:/opt/app# echo $CAMERA_PRIMARY_DEVICE
+
+root@cb25b12a9f88:/opt/app# source /opt/ros/humble/setup.bash 
+root@cb25b12a9f88:/opt/app# source ro
+robot.json          ros2_entrypoint.sh  ros2_ws/            
+root@cb25b12a9f88:/opt/app# source ros2_ws/
+build/   install/ log/     src/     
+root@cb25b12a9f88:/opt/app# source ros2_ws/install/setup.bash 
+root@cb25b12a9f88:/opt/app# echo $CAMERA_PRIMARY_DEVICE
+
+root@cb25b12a9f88:/opt/app# echo $CAMERA_PRIMARY_DEVICE^C
+root@cb25b12a9f88:/opt/app# python gstreamer_webrtc.py 
+INFO:util:Generated pipeline with 1 stream(s) in 'v4l2' mode
+Traceback (most recent call last):
+  File "/opt/app/gstreamer_webrtc.py", line 256, in <module>
+    c = WebRTCClient(200, args.server, loop)
+  File "/opt/app/gstreamer_webrtc.py", line 39, in __init__
+    self.robot_id = generate_robot_id()  # Get robot_id using MAC address
+  File "/opt/app/util.py", line 133, in generate_robot_id
+    raise RuntimeError("ROBOT_ID environment variable is not set")
+RuntimeError: ROBOT_ID environment variable is not set
+root@cb25b12a9f88:/opt/app# echo "e07112f2-74f0-5535-812f-1ae53c16c3f0" > robot_id.txt
+root@cb25b12a9f88:/opt/app# python gstreamer_webrtc.py 
+INFO:util:Generated pipeline with 1 stream(s) in 'v4l2' mode
+INFO:root:Using cached robot_id: e07112f2-74f0-5535-812f-1ae53c16c3f0
+INFO:root:Pipeline is already closed or was never started
+INFO:root:Attempting to reconnect...
+INFO:root:Connected to signaling server
+INFO:root:Sent join-room message with roomId: e07112f2-74f0-5535-812f-1ae53c16c3f0
+INFO:root:Reconnection successful
+INFO:root:Starting pipeline
+INFO:root:Pipeline started successfully
+INFO:root:Negotiation needed
+INFO:root:Sending offer:
+v=0
+o=- 4622717381460781614 0 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=ice-options:trickle
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=ice-ufrag:4/QG2IUq8l0VDg71ByjontNEmBhGLIhT
+a=ice-pwd:+1zxwo2cdhOW7J/5L7Tqzhua2VA1m3vT
+a=rtcp-mux
+a=rtcp-rsize
+a=sendrecv
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 nack pli
+a=rtcp-fb:96 transport-cc
+a=framerate:30
+a=ssrc:4130821071 msid:user82249116@host-9c690caa webrtctransceiver0
+a=ssrc:4130821071 cname:user82249116@host-9c690caa
+a=mid:video0
+a=fingerprint:sha-256 33:F4:5C:30:22:55:F7:EB:EB:01:3D:42:CC:7B:2F:4A:B8:8D:F6:48:CA:E6:D5:46:DA:5C:D8:EB:93:BF:52:F8
+a=rtcp-mux-only
+
+INFO:root:Adding Remote SDP:
+v=0
+o=- 7059308022195166123 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:8Iss
+a=ice-pwd:rNRo0r1MMyOF2HrwSsYps1XK
+a=ice-options:trickle
+a=fingerprint:sha-256 9F:24:B0:F7:E8:10:5A:13:6B:03:C2:03:42:0C:4D:5E:C5:92:1E:05:33:79:63:88:CD:93:84:DB:51:17:24:68
+a=setup:active
+a=mid:video0
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 nack pli
+
+INFO:root:Received answer:
+v=0
+o=- 7059308022195166123 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:8Iss
+a=ice-pwd:rNRo0r1MMyOF2HrwSsYps1XK
+a=ice-options:trickle
+a=fingerprint:sha-256 9F:24:B0:F7:E8:10:5A:13:6B:03:C2:03:42:0C:4D:5E:C5:92:1E:05:33:79:63:88:CD:93:84:DB:51:17:24:68
+a=setup:active
+a=mid:video0
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 nack pli
+
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:382730548 1 udp 2113937151 92d416e2-497d-4bf8-af7d-5a096ff851c9.local 47262 typ host generation 0 ufrag 8Iss network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': '8Iss'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1409651949 1 udp 1677729535 50.203.132.69 10305 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag 8Iss network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': '8Iss'}
+INFO:root:ICE connection state changed: checking
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1409651949 1 udp 1677729535 50.203.132.69 16062 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag 8Iss network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': '8Iss'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:2742615433 1 udp 33562623 100.29.63.105 65364 typ relay raddr 50.203.132.69 rport 10305 generation 0 ufrag 8Iss network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': '8Iss'}
+INFO:root:ICE connection state changed: completed
+INFO:root:Adding Remote SDP:
+v=0
+o=- 562630164857299910 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:zkln
+a=ice-pwd:3eEgcKFm3D5R9LvWjyTQ3FQv
+a=ice-options:trickle
+a=fingerprint:sha-256 F8:8C:9C:C7:6A:68:E9:47:71:6E:A7:42:E3:F6:A7:71:24:08:A2:2F:0B:53:53:69:42:F7:A8:5F:6F:3D:83:B5
+a=setup:actpass
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:738296951 1 udp 2122260223 172.18.0.2 59407 typ host generation 0 ufrag zkln network-id 1', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '738296951', 'component': 'rtp', 'priority': 2122260223, 'address': '172.18.0.2', 'protocol': 'udp', 'port': 59407, 'type': 'host', 'tcpType': None, 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'zkln'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:559267639 1 udp 2122202367 ::1 42904 typ host generation 0 ufrag zkln network-id 3', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '559267639', 'component': 'rtp', 'priority': 2122202367, 'address': '::1', 'protocol': 'udp', 'port': 42904, 'type': 'host', 'tcpType': None, 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'zkln'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1510613869 1 udp 2122129151 127.0.0.1 54164 typ host generation 0 ufrag zkln network-id 2', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '1510613869', 'component': 'rtp', 'priority': 2122129151, 'address': '127.0.0.1', 'protocol': 'udp', 'port': 54164, 'type': 'host', 'tcpType': None, 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'zkln'}
+INFO:root:ICE connection state changed: connected
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:3474981531 1 udp 1686052607 50.203.132.69 4605 typ srflx raddr 172.18.0.2 rport 59407 generation 0 ufrag zkln network-id 1', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '3474981531', 'component': 'rtp', 'priority': 1686052607, 'address': '50.203.132.69', 'protocol': 'udp', 'port': 4605, 'type': 'srflx', 'tcpType': None, 'relatedAddress': '172.18.0.2', 'relatedPort': 59407, 'usernameFragment': 'zkln'}
+INFO:root:ICE connection state changed: completed
+INFO:root:Adding Remote SDP:
+v=0
+o=- 1000354382118521739 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:UGWg
+a=ice-pwd:He7O52ZjvhK70g5uKIIUaP0V
+a=ice-options:trickle
+a=fingerprint:sha-256 8B:7A:AD:DC:53:19:18:24:FB:F7:95:5C:FA:64:E8:F8:D5:4C:AE:21:F1:89:FA:91:25:42:F3:FE:3D:75:BC:BC
+a=setup:active
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+INFO:root:Received answer:
+v=0
+o=- 1000354382118521739 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:UGWg
+a=ice-pwd:He7O52ZjvhK70g5uKIIUaP0V
+a=ice-options:trickle
+a=fingerprint:sha-256 8B:7A:AD:DC:53:19:18:24:FB:F7:95:5C:FA:64:E8:F8:D5:4C:AE:21:F1:89:FA:91:25:42:F3:FE:3D:75:BC:BC
+a=setup:active
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:3766124872 1 udp 2113937151 92d416e2-497d-4bf8-af7d-5a096ff851c9.local 48810 typ host generation 0 ufrag UGWg network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'UGWg'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:523714221 1 udp 1677729535 50.203.132.69 32205 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag UGWg network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'UGWg'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:523714221 1 udp 1677729535 50.203.132.69 18174 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag UGWg network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'UGWg'}
+INFO:root:ICE connection state changed: connected
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1652717703 1 tcp 1518280447 172.18.0.2 40213 typ host tcptype passive generation 0 ufrag zkln network-id 1', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '1652717703', 'component': 'rtp', 'priority': 1518280447, 'address': '172.18.0.2', 'protocol': 'tcp', 'port': 40213, 'type': 'host', 'tcpType': 'passive', 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'zkln'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1876313031 1 tcp 1518222591 ::1 46839 typ host tcptype passive generation 0 ufrag zkln network-id 3', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '1876313031', 'component': 'rtp', 'priority': 1518222591, 'address': '::1', 'protocol': 'tcp', 'port': 46839, 'type': 'host', 'tcpType': 'passive', 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'zkln'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:344579997 1 tcp 1518149375 127.0.0.1 52449 typ host tcptype passive generation 0 ufrag zkln network-id 2', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '344579997', 'component': 'rtp', 'priority': 1518149375, 'address': '127.0.0.1', 'protocol': 'tcp', 'port': 52449, 'type': 'host', 'tcpType': 'passive', 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'zkln'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1428153989 1 udp 33562623 100.29.63.105 58757 typ relay raddr 50.203.132.69 rport 18174 generation 0 ufrag UGWg network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'UGWg'}
+INFO:root:ICE connection state changed: completed
+
+
+确认container terminal：
+wency@wency-ThinkPad-E14-Gen-6:~$ ssh -X unloader1
+bind [127.0.0.1]:18333: Address already in use
+channel_setup_fwd_listener_tcpip: cannot listen to port: 18333
+Could not request local forwarding.
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-32-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+70 updates can be applied immediately.
+7 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+11 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+Last login: Thu Oct  2 16:14:30 2025 from 127.0.0.1
+unloader@unloader-Alienware-Aurora-ACT1250:~$ cd teleop/teleop/
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ ls
+apt-requirements.txt   joystick_webrtc.js                requirements.txt
+base_cam_gstreamer.py  monitor_timestamp_and_restart.py  robot.json
+detect_cameras.py      package.json                      ros2_entrypoint.sh
+docker-compose.yml     package-lock.json                 ros2_ws
+Dockerfile             README.md                         supervisord.conf
+gstreamer_webrtc.py    report_status.py                  util.py
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ echo "e07112f2-74f0-5535-812f-1ae53c16c3f0" > robot_id.txt
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ ls
+apt-requirements.txt   monitor_timestamp_and_restart.py  robot.json
+base_cam_gstreamer.py  package.json                      ros2_entrypoint.sh
+detect_cameras.py      package-lock.json                 ros2_ws
+docker-compose.yml     README.md                         supervisord.conf
+Dockerfile             report_status.py                  util.py
+gstreamer_webrtc.py    requirements.txt
+joystick_webrtc.js     robot_id.txt
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ docker images
+REPOSITORY      TAG       IMAGE ID       CREATED         SIZE
+teleop-teleop   latest    3d690a057c66   5 minutes ago   3.91GB
+<none>          <none>    0952128c6a45   25 hours ago    3.91GB
+<none>          <none>    56050aa057fe   3 days ago      3.91GB
+<none>          <none>    794929c70218   3 days ago      3.91GB
+<none>          <none>    4cab3e4a8889   3 days ago      3.91GB
+<none>          <none>    8533bcc7eee8   3 days ago      3.91GB
+<none>          <none>    037aff39b577   3 days ago      3.91GB
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ docker system prune -f
+Deleted Images:
+deleted: sha256:794929c70218af367a5516e6557def06404b0b2bac5ca02c756c11409bc1e7c7
+deleted: sha256:4cab3e4a888932ab5de88a58d704617e63943b168027a379d69e188754367c77
+deleted: sha256:8533bcc7eee81dd15b422ac10aee20301a7255d51e2d3084336c9da44e6953c7
+deleted: sha256:0952128c6a4523c321b5e55f48bd4238fa09c9ec01dd1eadf877ecf70c50e8c3
+deleted: sha256:037aff39b577cf51f991f234bae4428275f2b71f88a8616d3a3a664a87891760
+deleted: sha256:56050aa057fe7574424cccb2f911fca083e2fb6d37a0763f077b21e613cea1ed
+
+Deleted build cache objects:
+rt9363ojait819ny2kyv73lbb
+d8l1f5lus1nzo6blnah0idyfv
+imihnue30h3fjapv7iljnsb3b
+exz4kir5larnqnydeurgx33sl
+wbt66gyhe5c5jnvrbu15i3zv3
+yfs847vutb6pkwzjpgwlz9ofg
+zpp01sbc14jz094nyugr7l9qd
+akec8omd8q4iaogst16c0kqps
+1thr0nh178ma6dn45q57s72qt
+nwx58u3y7flpvwb2idz52v4qh
+x8ttw45pxeemn3eq5gho39hcv
+yxdhkdx9vngkd8jjme7j1vxxm
+s4f2rxeu8tysta65oe11x5exa
+kvfmdacpjoma768lvgefyudec
+nc5ibejsa08qiek7vmws777xy
+5pgc6vjdhyvbpzunlehjsoqa4
+otkm0jwzd0ljuru5nvj0c20kg
+pwtuuwwqwmr346kfjg9iyv1yv
+b9ynym3k426sbuirup2uyfkxh
+1ojv0yhpvjt324okme2su53nw
+q16ys9n8qhlt5l49wxna8zbhp
+9nww4jn86pelut9fcjzivemtx
+16khha7q81ddbrvlodvkda7wv
+rdy27stm0pp2grhysjwheo2gy
+k3gstp6ygbhit6hx8cfj9nq18
+nhy64rw2bzxlkck9gha9itypf
+8gx39n0ddhih3h7drmg0m4ovw
+l1hmxncu21g1p29yvhcs8gtem
+t7p4skbfmfmxaueoybho6d38j
+tsw77ly9jktiypfpjhilbo6mt
+lhjvuge3iuqz1qszts9ccdx65
+27agvw6aw92fnp82wymox6wp6
+nvrctty5s396kkw8qwrak0cm5
+h4nsak7vn08t29yfj0iez1w3v
+
+Total reclaimed space: 752.9MB
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ docker ps
+CONTAINER ID   IMAGE           COMMAND                  CREATED         STATUS         PORTS                                                                                                NAMES
+cb25b12a9f88   teleop-teleop   "/opt/app/ros2_entry…"   5 minutes ago   Up 5 minutes   0.0.0.0:8443->8443/tcp, [::]:8443->8443/tcp, 0.0.0.0:8765->8765/tcp, [::]:8765->8765/tcp, 9090/tcp   teleop
+unloader@unloader-Alienware-Aurora-ACT1250:~/teleop/teleop$ 
+
+
+js terminal：
+wency@wency-ThinkPad-E14-Gen-6:~$ ssh -X unloader1
+bind [127.0.0.1]:18333: Address already in use
+channel_setup_fwd_listener_tcpip: cannot listen to port: 18333
+Could not request local forwarding.
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-32-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+70 updates can be applied immediately.
+7 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+11 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+Last login: Thu Oct  2 16:10:50 2025 from 127.0.0.1
+unloader@unloader-Alienware-Aurora-ACT1250:~$ docker exec -it teleop /bin/bash
+root@cb25b12a9f88:/opt/app# source /opt/ros/humble/setup.bash 
+root@cb25b12a9f88:/opt/app# source ros2_ws/install/setup.bash 
+root@cb25b12a9f88:/opt/app# ls
+Dockerfile             joystick_webrtc.js                ros2_entrypoint.sh
+README.md              monitor_timestamp_and_restart.py  ros2_ws
+__pycache__            node_modules                      supervisord.conf
+apt-requirements.txt   package-lock.json                 supervisord.pid
+base_cam_gstreamer.py  package.json                      util.py
+detect_cameras.py      report_status.py                  venv
+docker-compose.yml     requirements.txt
+gstreamer_webrtc.py    robot.json
+root@cb25b12a9f88:/opt/app# node joystick_webrtc.js 
+Error loading action types: Error: The message required does not exist: move_program_interfaces, action, JamConveyor at /opt/app/node_modules/rclnodejs/generated/
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:116:11)
+    at Object.loadInterfaceByString (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:56:19)
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:100:21)
+    at Object.require (/opt/app/node_modules/rclnodejs/index.js:347:19)
+    at Object.<anonymous> (/opt/app/joystick_webrtc.js:12:27)
+    at Module._compile (node:internal/modules/cjs/loader:1358:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1416:10)
+    at Module.load (node:internal/modules/cjs/loader:1208:32)
+    at Module._load (node:internal/modules/cjs/loader:1024:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:174:12)
+Robot ID: e07112f2-74f0-5535-812f-1ae53c16c3f0
+Error: The message required does not exist: move_program_interfaces, action, JamConveyor at /opt/app/node_modules/rclnodejs/generated/
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:116:11)
+    at Object.loadInterfaceByString (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:56:19)
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:100:21)
+    at new ActionClient (/opt/app/node_modules/rclnodejs/lib/action/client.js:52:30)
+    at /opt/app/joystick_webrtc.js:322:25
+Connected to the signaling server
+Sent join-room message with roomId: e07112f2-74f0-5535-812f-1ae53c16c3f0
+Received message: {
+  type: 'answer',
+  sdp: 'v=0\r\n' +
+    'o=- 1000354382118521739 2 IN IP4 127.0.0.1\r\n' +
+    's=-\r\n' +
+    't=0 0\r\n' +
+    'a=group:BUNDLE 0\r\n' +
+    'a=msid-semantic: WMS\r\n' +
+    'm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n' +
+    'c=IN IP4 0.0.0.0\r\n' +
+    'a=ice-ufrag:UGWg\r\n' +
+    'a=ice-pwd:He7O52ZjvhK70g5uKIIUaP0V\r\n' +
+    'a=ice-options:trickle\r\n' +
+    'a=fingerprint:sha-256 8B:7A:AD:DC:53:19:18:24:FB:F7:95:5C:FA:64:E8:F8:D5:4C:AE:21:F1:89:FA:91:25:42:F3:FE:3D:75:BC:BC\r\n' +
+    'a=setup:active\r\n' +
+    'a=mid:0\r\n' +
+    'a=sctp-port:5000\r\n' +
+    'a=max-message-size:262144\r\n'
+}
+Received SDP: v=0
+o=- 1000354382118521739 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:UGWg
+a=ice-pwd:He7O52ZjvhK70g5uKIIUaP0V
+a=ice-options:trickle
+a=fingerprint:sha-256 8B:7A:AD:DC:53:19:18:24:FB:F7:95:5C:FA:64:E8:F8:D5:4C:AE:21:F1:89:FA:91:25:42:F3:FE:3D:75:BC:BC
+a=setup:active
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:3766124872 1 udp 2113937151 92d416e2-497d-4bf8-af7d-5a096ff851c9.local 48810 typ host generation 0 ufrag UGWg network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'UGWg'
+  }
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:523714221 1 udp 1677729535 50.203.132.69 32205 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag UGWg network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'UGWg'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:523714221 1 udp 1677729535 50.203.132.69 32205 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag UGWg network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'UGWg'
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:523714221 1 udp 1677729535 50.203.132.69 18174 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag UGWg network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'UGWg'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:523714221 1 udp 1677729535 50.203.132.69 18174 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag UGWg network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'UGWg'
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:1428153989 1 udp 33562623 100.29.63.105 58757 typ relay raddr 50.203.132.69 rport 18174 generation 0 ufrag UGWg network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'UGWg'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:1428153989 1 udp 33562623 100.29.63.105 58757 typ relay raddr 50.203.132.69 rport 18174 generation 0 ufrag UGWg network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'UGWg'
+}
+Data channel is open
+Low-priority bounding box channel is open
+
+
+
+
+

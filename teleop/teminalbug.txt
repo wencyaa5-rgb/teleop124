@@ -1,0 +1,662 @@
+为了方便复制，我都ctrl+c所有进程后才复制的.
+
+机器人客户端终端日志：
+wency@wency-ThinkPad-E14-Gen-6:~$ ssh unloader@unloader1 
+bind [127.0.0.1]:18333: Address already in use
+channel_setup_fwd_listener_tcpip: cannot listen to port: 18333
+Could not request local forwarding.
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-32-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+179 updates can be applied immediately.
+81 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+11 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+Last login: Wed Dec  3 16:45:09 2025 from 127.0.0.1
+unloader@unloader-Alienware-Aurora-ACT1250:~$ ls -l /dev/video0
+crw-rw----+ 1 root video 81, 0 Nov 24 14:50 /dev/video0
+unloader@unloader-Alienware-Aurora-ACT1250:~$ sudo lsof /dev/video0 2>/dev/null sudo fuser -v /dev/video0 2>/dev/null 
+[sudo] password for unloader: 
+unloader@unloader-Alienware-Aurora-ACT1250:~$ sudo ss -tulnp | grep 18333 
+unloader@unloader-Alienware-Aurora-ACT1250:~$ docker ps
+CONTAINER ID   IMAGE           COMMAND                  CREATED        STATUS        PORTS                                                                                                NAMES
+6a0603765895   teleop-teleop   "/opt/app/ros2_entry…"   17 hours ago   Up 17 hours   0.0.0.0:8443->8443/tcp, [::]:8443->8443/tcp, 0.0.0.0:8765->8765/tcp, [::]:8765->8765/tcp, 9090/tcp   teleop
+98fdfb126adc   mongo           "docker-entrypoint.s…"   2 weeks ago    Up 9 days     0.0.0.0:27017->27017/tcp, [::]:27017->27017/tcp                                                      mongodb
+unloader@unloader-Alienware-Aurora-ACT1250:~$ docker exec -it teleop /bin/bash
+root@6a0603765895:/opt/app# source /opt/ros/humble/setup.bash
+root@6a0603765895:/opt/app# source ros2_ws/install/setup.bash
+root@6a0603765895:/opt/app# python gstreamer_webrtc.py
+INFO:util:Generated pipeline with 1 stream(s) in 'v4l2' mode
+INFO:root:Using cached robot_id: e07112f2-74f0-5535-812f-1ae53c16c3f0
+INFO:root:Pipeline is already closed or was never started
+INFO:root:Attempting to reconnect...
+INFO:root:Connected to signaling server
+INFO:root:Sent join-room message with roomId: e07112f2-74f0-5535-812f-1ae53c16c3f0
+INFO:root:Reconnection successful
+INFO:root:Starting pipeline
+INFO:root:Pipeline started successfully
+INFO:root:Negotiation needed
+INFO:root:Sending offer:
+v=0
+o=- 8038955620839711056 0 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=ice-options:trickle
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=ice-ufrag:9Ywy/Lfke/cQ092wEEoYKt1GxJcBBXQb
+a=ice-pwd:u5tYTZkCriFLo2Q70lmTcdtQZCpqW6ZE
+a=rtcp-mux
+a=rtcp-rsize
+a=sendrecv
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 nack pli
+a=rtcp-fb:96 transport-cc
+a=framerate:30
+a=ssrc:3889238683 msid:user3344773061@host-2df3cd09 webrtctransceiver0
+a=ssrc:3889238683 cname:user3344773061@host-2df3cd09
+a=mid:video0
+a=fingerprint:sha-256 0C:CB:52:C2:8A:73:21:42:3F:E0:D5:79:14:46:7B:6E:7A:B4:1B:8F:F6:30:65:F7:36:69:07:DA:F8:2D:C3:EC
+a=rtcp-mux-only
+
+INFO:root:Adding Remote SDP:
+v=0
+o=- 7140732945654162259 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:Rjfq
+a=ice-pwd:d6g+h8vpYn4T2ePtmImTxKTm
+a=ice-options:trickle
+a=fingerprint:sha-256 A1:C1:8B:07:25:24:A9:25:BD:EE:61:AD:D3:9C:F5:F6:0D:6C:B2:87:AD:13:E6:A5:79:65:0C:57:C0:F1:17:B5
+a=setup:actpass
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+^CTraceback (most recent call last):
+  File "/opt/app/gstreamer_webrtc.py", line 255, in <module>
+    loop.run_until_complete(c.reconnect())
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 636, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 603, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 1871, in _run_once
+    event_list = self._selector.select(timeout)
+  File "/usr/lib/python3.10/selectors.py", line 469, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+KeyboardInterrupt
+
+root@6a0603765895:/opt/app# python gstreamer_webrtc.py
+INFO:util:Generated pipeline with 1 stream(s) in 'v4l2' mode
+INFO:root:Using cached robot_id: e07112f2-74f0-5535-812f-1ae53c16c3f0
+INFO:root:Pipeline is already closed or was never started
+INFO:root:Attempting to reconnect...
+INFO:root:Connected to signaling server
+INFO:root:Sent join-room message with roomId: e07112f2-74f0-5535-812f-1ae53c16c3f0
+INFO:root:Reconnection successful
+INFO:root:Starting pipeline
+INFO:root:Pipeline started successfully
+INFO:root:Negotiation needed
+INFO:root:Sending offer:
+v=0
+o=- 5040881371459082180 0 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=ice-options:trickle
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=ice-ufrag:c25fXScIRp7+HnYTSS0RGXqrdbO2f5MF
+a=ice-pwd:TKvsxZ8nCj+CNetewCqHarLwduFc+gY4
+a=rtcp-mux
+a=rtcp-rsize
+a=sendrecv
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 nack pli
+a=rtcp-fb:96 transport-cc
+a=framerate:30
+a=ssrc:1661833909 msid:user2121850384@host-39b6c8e webrtctransceiver0
+a=ssrc:1661833909 cname:user2121850384@host-39b6c8e
+a=mid:video0
+a=fingerprint:sha-256 5A:F2:ED:4E:EB:25:AA:2E:D8:D7:81:00:98:E6:EE:ED:CA:45:F1:54:23:B2:66:AF:36:30:E5:C4:31:E8:3A:93
+a=rtcp-mux-only
+
+INFO:root:Adding Remote SDP:
+v=0
+o=- 6191344680359324962 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:bnqQ
+a=ice-pwd:erBX1/Df3E0KassONjJpY1gV
+a=ice-options:trickle
+a=fingerprint:sha-256 2F:AF:69:0B:45:BE:72:B2:AF:20:3B:DF:3B:A1:85:82:D5:C7:12:A8:C2:CD:2F:E0:DA:4A:98:59:09:D2:BE:C4
+a=setup:active
+a=mid:video0
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 nack pli
+
+INFO:root:Received answer:
+v=0
+o=- 6191344680359324962 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=msid-semantic: WMS
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=rtcp:9 IN IP4 0.0.0.0
+a=ice-ufrag:bnqQ
+a=ice-pwd:erBX1/Df3E0KassONjJpY1gV
+a=ice-options:trickle
+a=fingerprint:sha-256 2F:AF:69:0B:45:BE:72:B2:AF:20:3B:DF:3B:A1:85:82:D5:C7:12:A8:C2:CD:2F:E0:DA:4A:98:59:09:D2:BE:C4
+a=setup:active
+a=mid:video0
+a=recvonly
+a=rtcp-mux
+a=rtcp-rsize
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 transport-cc
+a=rtcp-fb:96 nack pli
+
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:2254545114 1 udp 2113937151 274a6fef-1e2d-4a4b-b201-d00eb7be3d0e.local 46807 typ host generation 0 ufrag bnqQ network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': 'bnqQ'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1456162715 1 udp 2113939711 0d7eefe9-7837-4936-aa66-fa6583d97427.local 47630 typ host generation 0 ufrag bnqQ network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': 'bnqQ'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:2479508752 1 udp 1677729535 172.56.193.134 7822 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag bnqQ network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': 'bnqQ'}
+INFO:root:ICE connection state changed: checking
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:3789074915 1 udp 1677732095 2607:fb90:ad63:371:3978:161b:31f0:c030 47630 typ srflx raddr :: rport 0 generation 0 ufrag bnqQ network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': 'bnqQ'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1689724020 1 udp 33562623 100.29.63.105 54765 typ relay raddr 172.56.193.134 rport 7822 generation 0 ufrag bnqQ network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': 'bnqQ'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1689724020 1 udp 33562623 100.29.63.105 53557 typ relay raddr 172.56.194.34 rport 11219 generation 0 ufrag bnqQ network-cost 999', 'sdpMid': 'video0', 'sdpMLineIndex': 0, 'usernameFragment': 'bnqQ'}
+INFO:root:ICE connection state changed: connected
+INFO:root:Adding Remote SDP:
+v=0
+o=- 6703699627050443019 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:oT+c
+a=ice-pwd:qK+oWm9QCyFw3e+TO/is0Eo9
+a=ice-options:trickle
+a=fingerprint:sha-256 97:22:37:85:4B:F6:44:B3:09:74:A8:08:C2:88:41:AD:98:69:CA:6B:F8:F6:99:45:21:90:C6:C0:86:C2:FC:1F
+a=setup:actpass
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:738296951 1 udp 2122260223 172.18.0.2 38520 typ host generation 0 ufrag oT+c network-id 1', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '738296951', 'component': 'rtp', 'priority': 2122260223, 'address': '172.18.0.2', 'protocol': 'udp', 'port': 38520, 'type': 'host', 'tcpType': None, 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'oT+c'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:559267639 1 udp 2122202367 ::1 46862 typ host generation 0 ufrag oT+c network-id 3', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '559267639', 'component': 'rtp', 'priority': 2122202367, 'address': '::1', 'protocol': 'udp', 'port': 46862, 'type': 'host', 'tcpType': None, 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'oT+c'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1510613869 1 udp 2122129151 127.0.0.1 33031 typ host generation 0 ufrag oT+c network-id 2', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '1510613869', 'component': 'rtp', 'priority': 2122129151, 'address': '127.0.0.1', 'protocol': 'udp', 'port': 33031, 'type': 'host', 'tcpType': None, 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'oT+c'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:3474981531 1 udp 1686052607 50.203.132.69 10545 typ srflx raddr 172.18.0.2 rport 38520 generation 0 ufrag oT+c network-id 1', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '3474981531', 'component': 'rtp', 'priority': 1686052607, 'address': '50.203.132.69', 'protocol': 'udp', 'port': 10545, 'type': 'srflx', 'tcpType': None, 'relatedAddress': '172.18.0.2', 'relatedPort': 38520, 'usernameFragment': 'oT+c'}
+INFO:root:Adding Remote SDP:
+v=0
+o=- 6496282288839515047 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:aFey
+a=ice-pwd:AYtSYefEXAhKCcL36eQ+5lJP
+a=ice-options:trickle
+a=fingerprint:sha-256 7C:78:74:45:DE:BD:F9:F1:5E:EE:A7:01:03:80:8E:5F:F6:19:16:ED:F6:55:FA:77:BA:48:44:61:18:B4:29:BB
+a=setup:active
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+INFO:root:Received answer:
+v=0
+o=- 6496282288839515047 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:aFey
+a=ice-pwd:AYtSYefEXAhKCcL36eQ+5lJP
+a=ice-options:trickle
+a=fingerprint:sha-256 7C:78:74:45:DE:BD:F9:F1:5E:EE:A7:01:03:80:8E:5F:F6:19:16:ED:F6:55:FA:77:BA:48:44:61:18:B4:29:BB
+a=setup:active
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:4211171834 1 udp 2113937151 274a6fef-1e2d-4a4b-b201-d00eb7be3d0e.local 49229 typ host generation 0 ufrag aFey network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'aFey'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:4195007003 1 udp 2113939711 0d7eefe9-7837-4936-aa66-fa6583d97427.local 35982 typ host generation 0 ufrag aFey network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'aFey'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1652717703 1 tcp 1518280447 172.18.0.2 41751 typ host tcptype passive generation 0 ufrag oT+c network-id 1', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '1652717703', 'component': 'rtp', 'priority': 1518280447, 'address': '172.18.0.2', 'protocol': 'tcp', 'port': 41751, 'type': 'host', 'tcpType': 'passive', 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'oT+c'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:1876313031 1 tcp 1518222591 ::1 41109 typ host tcptype passive generation 0 ufrag oT+c network-id 3', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '1876313031', 'component': 'rtp', 'priority': 1518222591, 'address': '::1', 'protocol': 'tcp', 'port': 41109, 'type': 'host', 'tcpType': 'passive', 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'oT+c'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:344579997 1 tcp 1518149375 127.0.0.1 53901 typ host tcptype passive generation 0 ufrag oT+c network-id 2', 'sdpMid': '0', 'sdpMLineIndex': 0, 'foundation': '344579997', 'component': 'rtp', 'priority': 1518149375, 'address': '127.0.0.1', 'protocol': 'tcp', 'port': 53901, 'type': 'host', 'tcpType': 'passive', 'relatedAddress': None, 'relatedPort': None, 'usernameFragment': 'oT+c'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:2158354873 1 udp 1677729535 172.56.193.134 45166 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag aFey network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'aFey'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:2757972195 1 udp 1677729535 172.56.194.34 8104 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag aFey network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'aFey'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:2757972195 1 udp 1677732095 2607:fb90:ad63:371:3978:161b:31f0:c030 35982 typ srflx raddr :: rport 0 generation 0 ufrag aFey network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'aFey'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:3398252945 1 udp 33562623 100.29.63.105 49723 typ relay raddr 172.56.194.34 rport 8104 generation 0 ufrag aFey network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'aFey'}
+INFO:root:Adding ice Candidate:
+{'candidate': 'candidate:3398252945 1 udp 33562623 100.29.63.105 52020 typ relay raddr 172.56.193.134 rport 45166 generation 0 ufrag aFey network-cost 999', 'sdpMid': '0', 'sdpMLineIndex': 0, 'usernameFragment': 'aFey'}
+INFO:root:ICE connection state changed: completed
+^CTraceback (most recent call last):
+  File "/opt/app/gstreamer_webrtc.py", line 255, in <module>
+    loop.run_until_complete(c.reconnect())
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 636, in run_until_complete
+    self.run_forever()
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 603, in run_forever
+    self._run_once()
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 1871, in _run_once
+    event_list = self._selector.select(timeout)
+  File "/usr/lib/python3.10/selectors.py", line 469, in select
+    fd_event_list = self._selector.poll(timeout, max_ev)
+KeyboardInterrupt
+
+root@6a0603765895:/opt/app# 
+
+
+机器人控制断日志：
+wency@wency-ThinkPad-E14-Gen-6:~$ ssh unloader@unloader1
+bind [127.0.0.1]:18333: Address already in use
+channel_setup_fwd_listener_tcpip: cannot listen to port: 18333
+Could not request local forwarding.
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-32-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+
+Expanded Security Maintenance for Applications is not enabled.
+
+179 updates can be applied immediately.
+81 of these updates are standard security updates.
+To see these additional updates run: apt list --upgradable
+
+11 additional security updates can be applied with ESM Apps.
+Learn more about enabling ESM Apps service at https://ubuntu.com/esm
+
+
+1 device has a firmware upgrade available.
+Run `fwupdmgr get-upgrades` for more information.
+
+Last login: Thu Dec  4 09:48:04 2025 from 127.0.0.1
+unloader@unloader-Alienware-Aurora-ACT1250:~$ docker exec -it teleop /bin/bash 
+root@6a0603765895:/opt/app# source /opt/ros/humble/setup.bash
+root@6a0603765895:/opt/app# source ros2_ws/install/setup.bash
+root@6a0603765895:/opt/app# node joystick_webrtc.js
+Error loading action types: Error: The message required does not exist: move_program_interfaces, action, JamConveyor at /opt/app/node_modules/rclnodejs/generated/
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:116:11)
+    at Object.loadInterfaceByString (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:56:19)
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:100:21)
+    at Object.require (/opt/app/node_modules/rclnodejs/index.js:347:19)
+    at Object.<anonymous> (/opt/app/joystick_webrtc.js:12:27)
+    at Module._compile (node:internal/modules/cjs/loader:1358:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1416:10)
+    at Module.load (node:internal/modules/cjs/loader:1208:32)
+    at Module._load (node:internal/modules/cjs/loader:1024:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:174:12)
+Robot ID: e07112f2-74f0-5535-812f-1ae53c16c3f0
+Joy Publisher Node Fully Initialized
+Connected to the signaling server
+Sent join-room message with roomId: e07112f2-74f0-5535-812f-1ae53c16c3f0
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+^C/opt/app/node_modules/rclnodejs/lib/publisher.js:58
+      rclnodejs.publish(this._handle, rawMessage);
+                ^
+
+Error: publisher pointer is invalid, at ./src/rcl/publisher.c:400
+    at Publisher.publish (/opt/app/node_modules/rclnodejs/lib/publisher.js:58:17)
+    at Timeout._onTimeout (/opt/app/joystick_webrtc.js:321:32)
+
+Node.js v20.15.1
+root@6a0603765895:/opt/app# node joystick_webrtc.js
+Error loading action types: Error: The message required does not exist: move_program_interfaces, action, JamConveyor at /opt/app/node_modules/rclnodejs/generated/
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:116:11)
+    at Object.loadInterfaceByString (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:56:19)
+    at Object.loadInterface (/opt/app/node_modules/rclnodejs/lib/interface_loader.js:100:21)
+    at Object.require (/opt/app/node_modules/rclnodejs/index.js:347:19)
+    at Object.<anonymous> (/opt/app/joystick_webrtc.js:12:27)
+    at Module._compile (node:internal/modules/cjs/loader:1358:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1416:10)
+    at Module.load (node:internal/modules/cjs/loader:1208:32)
+    at Module._load (node:internal/modules/cjs/loader:1024:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:174:12)
+Robot ID: e07112f2-74f0-5535-812f-1ae53c16c3f0
+Joy Publisher Node Fully Initialized
+Connected to the signaling server
+Sent join-room message with roomId: e07112f2-74f0-5535-812f-1ae53c16c3f0
+Received message: {
+  type: 'answer',
+  sdp: 'v=0\r\n' +
+    'o=- 6496282288839515047 2 IN IP4 127.0.0.1\r\n' +
+    's=-\r\n' +
+    't=0 0\r\n' +
+    'a=group:BUNDLE 0\r\n' +
+    'a=msid-semantic: WMS\r\n' +
+    'm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n' +
+    'c=IN IP4 0.0.0.0\r\n' +
+    'a=ice-ufrag:aFey\r\n' +
+    'a=ice-pwd:AYtSYefEXAhKCcL36eQ+5lJP\r\n' +
+    'a=ice-options:trickle\r\n' +
+    'a=fingerprint:sha-256 7C:78:74:45:DE:BD:F9:F1:5E:EE:A7:01:03:80:8E:5F:F6:19:16:ED:F6:55:FA:77:BA:48:44:61:18:B4:29:BB\r\n' +
+    'a=setup:active\r\n' +
+    'a=mid:0\r\n' +
+    'a=sctp-port:5000\r\n' +
+    'a=max-message-size:262144\r\n'
+}
+Received SDP: v=0
+o=- 6496282288839515047 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:aFey
+a=ice-pwd:AYtSYefEXAhKCcL36eQ+5lJP
+a=ice-options:trickle
+a=fingerprint:sha-256 7C:78:74:45:DE:BD:F9:F1:5E:EE:A7:01:03:80:8E:5F:F6:19:16:ED:F6:55:FA:77:BA:48:44:61:18:B4:29:BB
+a=setup:active
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:4211171834 1 udp 2113937151 274a6fef-1e2d-4a4b-b201-d00eb7be3d0e.local 49229 typ host generation 0 ufrag aFey network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'aFey'
+  }
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:4195007003 1 udp 2113939711 0d7eefe9-7837-4936-aa66-fa6583d97427.local 35982 typ host generation 0 ufrag aFey network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'aFey'
+  }
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:2158354873 1 udp 1677729535 172.56.193.134 45166 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag aFey network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'aFey'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:2158354873 1 udp 1677729535 172.56.193.134 45166 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag aFey network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'aFey'
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:2757972195 1 udp 1677729535 172.56.194.34 8104 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag aFey network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'aFey'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:2757972195 1 udp 1677729535 172.56.194.34 8104 typ srflx raddr 0.0.0.0 rport 0 generation 0 ufrag aFey network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'aFey'
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:2757972195 1 udp 1677732095 2607:fb90:ad63:371:3978:161b:31f0:c030 35982 typ srflx raddr :: rport 0 generation 0 ufrag aFey network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'aFey'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:2757972195 1 udp 1677732095 2607:fb90:ad63:371:3978:161b:31f0:c030 35982 typ srflx raddr :: rport 0 generation 0 ufrag aFey network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'aFey'
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:3398252945 1 udp 33562623 100.29.63.105 49723 typ relay raddr 172.56.194.34 rport 8104 generation 0 ufrag aFey network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'aFey'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:3398252945 1 udp 33562623 100.29.63.105 49723 typ relay raddr 172.56.194.34 rport 8104 generation 0 ufrag aFey network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'aFey'
+}
+Received message: {
+  type: 'ice-candidate',
+  candidate: {
+    candidate: 'candidate:3398252945 1 udp 33562623 100.29.63.105 52020 typ relay raddr 172.56.193.134 rport 45166 generation 0 ufrag aFey network-cost 999',
+    sdpMid: '0',
+    sdpMLineIndex: 0,
+    usernameFragment: 'aFey'
+  }
+}
+Adding ICE candidate: {
+  candidate: 'candidate:3398252945 1 udp 33562623 100.29.63.105 52020 typ relay raddr 172.56.193.134 rport 45166 generation 0 ufrag aFey network-cost 999',
+  sdpMid: '0',
+  sdpMLineIndex: 0,
+  usernameFragment: 'aFey'
+}
+Data channel is open
+Low-priority bounding box channel is open
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Published workspace_pixels: undefined
+Data channel is closed
+Low-priority bounding box channel is closed
+Published workspace_pixels: undefined
+^C/opt/app/node_modules/rclnodejs/lib/publisher.js:58
+      rclnodejs.publish(this._handle, rawMessage);
+                ^
+
+Error: publisher pointer is invalid, at ./src/rcl/publisher.c:400
+    at Publisher.publish (/opt/app/node_modules/rclnodejs/lib/publisher.js:58:17)
+    at Timeout._onTimeout (/opt/app/joystick_webrtc.js:321:32)
+
+Node.js v20.15.1
+root@6a0603765895:/opt/app# 
+
+
+网页console日志：
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+deprecations.ts:9 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+warnOnce @ deprecations.ts:9Understand this warning
+deprecations.ts:9 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+warnOnce @ deprecations.ts:9Understand this warning
+:5000/favicon.ico:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+useWebRTC.js:252 Connection closed
+useWebRTC.js:62 Connected to the signaling server
+useWebRTC.js:50 Websocket received message {type: 'offer', sdp: 'v=0\r\no=- 5040881371459082180 0 IN IP4 0.0.0.0\r\ns=-…:66:AF:36:30:E5:C4:31:E8:3A:93\r\na=rtcp-mux-only\r\n'}
+useWebRTC.js:85 Received SDP Offer: v=0
+o=- 5040881371459082180 0 IN IP4 0.0.0.0
+s=-
+t=0 0
+a=ice-options:trickle
+m=video 9 UDP/TLS/RTP/SAVPF 96
+c=IN IP4 0.0.0.0
+a=setup:actpass
+a=ice-ufrag:c25fXScIRp7+HnYTSS0RGXqrdbO2f5MF
+a=ice-pwd:TKvsxZ8nCj+CNetewCqHarLwduFc+gY4
+a=rtcp-mux
+a=rtcp-rsize
+a=sendrecv
+a=rtpmap:96 VP8/90000
+a=rtcp-fb:96 nack pli
+a=rtcp-fb:96 transport-cc
+a=framerate:30
+a=ssrc:1661833909 msid:user2121850384@host-39b6c8e webrtctransceiver0
+a=ssrc:1661833909 cname:user2121850384@host-39b6c8e
+a=mid:video0
+a=fingerprint:sha-256 5A:F2:ED:4E:EB:25:AA:2E:D8:D7:81:00:98:E6:EE:ED:CA:45:F1:54:23:B2:66:AF:36:30:E5:C4:31:E8:3A:93
+a=rtcp-mux-only
+
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:116 Signaling state: have-remote-offer
+useWebRTC.js:116 Signaling state: stable
+useWebRTC.js:109 ICE connection state: checking
+useWebRTC.js:109 ICE connection state: connected
+useWebRTC.js:50 Websocket received message {type: 'offer', sdp: 'v=0\r\no=- 6703699627050443019 2 IN IP4 127.0.0.1\r\ns…:0\r\na=sctp-port:5000\r\na=max-message-size:262144\r\n'}
+useWebRTC.js:85 Received SDP Offer: v=0
+o=- 6703699627050443019 2 IN IP4 127.0.0.1
+s=-
+t=0 0
+a=group:BUNDLE 0
+a=msid-semantic: WMS
+m=application 9 UDP/DTLS/SCTP webrtc-datachannel
+c=IN IP4 0.0.0.0
+a=ice-ufrag:oT+c
+a=ice-pwd:qK+oWm9QCyFw3e+TO/is0Eo9
+a=ice-options:trickle
+a=fingerprint:sha-256 97:22:37:85:4B:F6:44:B3:09:74:A8:08:C2:88:41:AD:98:69:CA:6B:F8:F6:99:45:21:90:C6:C0:86:C2:FC:1F
+a=setup:actpass
+a=mid:0
+a=sctp-port:5000
+a=max-message-size:262144
+
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:116 Signaling state: have-remote-offer
+useWebRTC.js:116 Signaling state: stable
+useWebRTC.js:109 ICE connection state: checking
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ERROR', message: 'Session already established'}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:50 Websocket received message {type: 'ice-candidate', candidate: {…}}
+useWebRTC.js:109 ICE connection state: connected
+useWebRTC.js:125 Data channel is open
+useWebRTC.js:252 Connection closed
+useWebRTC.js:129 Data channel is closed
+useWebRTC.js:77 Signaling server connection closed
+useWebRTC.js:109 ICE connection state: closed
+
